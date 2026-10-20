@@ -1,25 +1,326 @@
 ---
 import Base from '../../layouts/Base.astro';
+import { CATEGORIES, LANGUAGES } from '../../diaspora/categories';
 ---
 
-<Base section={{ href: '/diaspora', label: 'Українці в Гливицях' }} title="Українці в Гливицях" description="Карта місць, де обслуговують українською, і місць для зустрічей" lang="uk">
-  <h1>Українці в Гливицях</h1>
-  <p class="muted">Місця, де обслуговують українською, і де можна зібратися.</p>
-  <div id="map"></div>
-  <p id="map-status" class="muted"></p>
+<Base
+  section={{ href: '/diaspora', label: 'Українці в Гливицях' }}
+  title="Українці в Гливицях"
+  description="Карта місць, де обслуговують українською, і місць для зустрічей"
+  lang="uk"
+  full
+>
+  <div class="app" data-sheet="peek">
+    <aside class="panel" aria-label="Пошук і фільтри">
+      <button class="handle" type="button" aria-label="Розгорнути список"><span></span></button>
+      <div class="panel-body">
+        <input id="search" type="search" placeholder="Пошук: назва, адреса, послуга" autocomplete="off" />
+
+        <div class="cats-head">
+          <h2>Категорії</h2>
+          <span>
+            <button type="button" id="cats-all" class="link">усі</button> ·
+            <button type="button" id="cats-none" class="link">жодної</button>
+          </span>
+        </div>
+        <ul class="cats">
+          {
+            CATEGORIES.map((c) => (
+              <li>
+                <label style={`--c: ${c.color}`}>
+                  <input type="checkbox" value={c.id} checked />
+                  <span class="cat-icon">{c.icon}</span>
+                  <span class="cat-label">{c.label}</span>
+                  <span class="cat-count" data-count={c.id}>0</span>
+                </label>
+              </li>
+            ))
+          }
+        </ul>
+
+        <h2 class="list-head">Місця <span id="list-count" class="muted"></span></h2>
+        <ul id="list" class="list"></ul>
+        <p id="status" class="muted small"></p>
+
+        <button type="button" id="suggest-open" class="primary">+ Запропонувати місце</button>
+      </div>
+    </aside>
+
+    <div id="map"></div>
+
+    <article id="card" class="card-panel" hidden aria-live="polite"></article>
+
+    <div id="pick-banner" class="pick-banner" hidden>
+      Клацніть на карті, де знаходиться місце
+      <button type="button" id="pick-cancel" class="link">скасувати</button>
+    </div>
+  </div>
+
+  <dialog id="suggest">
+    <form id="suggest-form" method="dialog">
+      <header>
+        <h2>Запропонувати місце</h2>
+        <button type="button" class="close" data-close aria-label="Закрити">×</button>
+      </header>
+      <p class="muted small">Ми перевіримо й додамо його на карту. Поля із * обов'язкові.</p>
+
+      <label>Назва *<input name="name" required maxlength="120" /></label>
+      <label
+        >Категорія *
+        <select name="kind" required>
+          <option value="">—</option>
+          {CATEGORIES.map((c) => <option value={c.id}>{c.icon} {c.label}</option>)}
+        </select>
+      </label>
+      <label>Адреса<input name="address" maxlength="300" placeholder="вул. Звицєнства, 1" /></label>
+      <div class="pick-row">
+        <button type="button" id="pick-start">📍 Позначити на карті *</button>
+        <span id="pick-value" class="muted small">не позначено</span>
+        <input type="hidden" name="lat" />
+        <input type="hidden" name="lng" />
+      </div>
+      <fieldset>
+        <legend>Мови обслуговування</legend>
+        {
+          Object.entries(LANGUAGES).map(([id, label]) => (
+            <label class="inline">
+              <input type="checkbox" name="languages" value={id} checked={id === 'uk'} /> {label}
+            </label>
+          ))
+        }
+      </fieldset>
+      <label>Опис<textarea name="description" rows="3" maxlength="2000"></textarea></label>
+      <label>Години роботи<input name="hours" maxlength="300" placeholder="Пн–Пт 9–18, Сб 10–14" /></label>
+      <div class="two">
+        <label>Телефон<input name="phone" type="tel" maxlength="40" /></label>
+        <label>Сайт<input name="website" maxlength="300" /></label>
+        <label>Telegram<input name="telegram" maxlength="100" placeholder="@username" /></label>
+        <label>Instagram<input name="instagram" maxlength="100" placeholder="@username" /></label>
+      </div>
+      <label>Коментар для модератора<textarea name="note" rows="2" maxlength="500"></textarea></label>
+      <label class="trap" aria-hidden="true">Company<input name="company" tabindex="-1" autocomplete="off" /></label>
+
+      <p id="suggest-error" class="error" hidden></p>
+      <footer>
+        <button type="button" data-close>Скасувати</button>
+        <button type="submit" class="primary">Надіслати</button>
+      </footer>
+    </form>
+  </dialog>
 </Base>
 
-<style>
-  #map {
-    height: min(70vh, 560px);
-    border-radius: 10px;
+<style is:global>
+  .app {
+    --panel: 340px;
+    position: relative;
+    height: 100%;
+    display: grid;
+    grid-template-columns: var(--panel) 1fr;
+  }
+  #map { min-height: 0; }
+  .panel {
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+    overflow: auto;
+    z-index: 2;
+  }
+  .panel .handle { display: none; }
+  .panel-body { padding: 14px 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 6px 0 0; }
+  .small { font-size: 14px; }
+  #search, dialog input:not([type='checkbox']), dialog select, dialog textarea {
+    width: 100%;
+    font: inherit;
+    font-size: 16px;
+    padding: 8px 10px;
     border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  button { font: inherit; cursor: pointer; }
+  button.link { background: none; border: 0; padding: 0; color: var(--accent); font-size: 14px; }
+  button.primary, dialog footer button, #pick-start {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+  .cats-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .cats, .list { list-style: none; margin: 0; padding: 0; }
+  .cats label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  .cats label:hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
+  .cats input { accent-color: var(--c); }
+  .cat-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--c);
+    font-size: 14px;
+  }
+  .cat-label { flex: 1; }
+  .cat-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .cats label:has(input:not(:checked)) { opacity: 0.5; }
+
+  .list li button {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-radius: 8px;
+    padding: 6px;
+    color: var(--text);
+  }
+  .list li button:hover, .list li button[aria-current='true'] { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .list .addr { display: block; color: var(--muted); font-size: 13px; }
+
+  .pin {
+    width: 30px;
+    height: 30px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    background: var(--c);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: width 0.15s, height 0.15s;
+  }
+  .pin span { transform: rotate(45deg); font-size: 15px; line-height: 1; }
+  .pin.active { width: 40px; height: 40px; z-index: 1; }
+  .pin.active span { font-size: 20px; }
+  .pin.draft { --c: #888; border-style: dashed; }
+
+  .card-panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: min(360px, calc(100% - 24px));
+    max-height: calc(100% - 24px);
+    overflow: auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+    z-index: 3;
+  }
+  .card-panel img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; border-radius: 12px 12px 0 0; }
+  .card-panel .body { padding: 14px 16px 16px; }
+  .card-panel h3 { margin: 0 32px 4px 0; font-size: 20px; line-height: 1.3; }
+  .card-panel .close { position: absolute; top: 8px; right: 8px; }
+  .card-panel .kind { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--muted); }
+  .card-panel dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 12px 0; font-size: 15px; }
+  .card-panel dt { color: var(--muted); }
+  .card-panel dd { margin: 0; overflow-wrap: anywhere; }
+  .card-panel .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .card-panel .actions a { font-size: 15px; }
+  .card-panel .desc { white-space: pre-line; margin: 10px 0 0; }
+  .close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 0;
+    background: color-mix(in srgb, var(--text) 10%, var(--bg));
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .pick-banner {
+    position: absolute;
+    top: 12px;
+    left: calc(var(--panel) + 50%);
+    transform: translateX(calc(-50% - var(--panel) / 2));
+    background: var(--text);
+    color: var(--bg);
+    padding: 8px 14px;
+    border-radius: 999px;
+    z-index: 4;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .pick-banner .link { color: var(--bg); text-decoration: underline; margin-left: 8px; }
+  .picking #map { cursor: crosshair; }
+  .picking .maplibregl-canvas { cursor: crosshair; }
+
+  dialog {
+    width: min(520px, calc(100% - 24px));
+    max-height: calc(100dvh - 24px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--text);
+    padding: 0;
+  }
+  dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+  dialog form { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  dialog header { display: flex; justify-content: space-between; align-items: center; }
+  dialog h2 { margin: 0; font-size: 20px; }
+  dialog p { margin: 0; }
+  dialog label { display: flex; flex-direction: column; gap: 4px; font-size: 15px; }
+  dialog label.inline { flex-direction: row; align-items: center; display: inline-flex; margin-right: 12px; }
+  dialog fieldset { border: 1px solid var(--border); border-radius: 8px; margin: 0; }
+  dialog legend { font-size: 15px; padding: 0 4px; }
+  dialog .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  dialog footer { display: flex; justify-content: flex-end; gap: 8px; }
+  .pick-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .trap { position: absolute !important; left: -9999px; }
+  .error { color: #d64545; }
+
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; }
+    .panel {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 70%;
+      border-right: 0;
+      border-top: 1px solid var(--border);
+      border-radius: 14px 14px 0 0;
+      box-shadow: 0 -4px 20px rgb(0 0 0 / 0.15);
+      transition: transform 0.25s;
+    }
+    .app[data-sheet='peek'] .panel { transform: translateY(calc(100% - 128px)); overflow: hidden; }
+    .panel .handle {
+      display: block;
+      width: 100%;
+      height: 22px;
+      background: none;
+      border: 0;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+    }
+    .panel .handle span { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto; }
+    .panel-body { padding-top: 0; }
+    .card-panel { top: auto; bottom: 12px; right: 12px; max-height: 60%; z-index: 5; }
+    .pick-banner { left: 50%; transform: translateX(-50%); }
+    .app .maplibregl-ctrl-bottom-right { bottom: 128px; }
+    dialog .two { grid-template-columns: 1fr; }
   }
 </style>
 
 <script>
-  import L from 'leaflet';
-  import 'leaflet/dist/leaflet.css';
+  import { createCityMap, insideCity, maplibregl } from '../../diaspora/map';
+  import { CATEGORIES, LANGUAGES } from '../../diaspora/categories';
 
   interface Place {
     slug: string;
@@ -29,28 +330,277 @@ import Base from '../../layouts/Base.astro';
     address: string | null;
     lat: number;
     lng: number;
+    languages: string;
+    hours: string | null;
+    contacts: string | null;
+    photo: string | null;
+    phone: string | null;
+    website: string | null;
+    telegram: string | null;
+    instagram: string | null;
+    facebook: string | null;
+    checked_at: string | null;
   }
 
-  // Центр Гливице
-  const map = L.map('map').setView([50.2945, 18.6714], 14);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  }).addTo(map);
+  const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
+  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  const cats = new Map(CATEGORIES.map((c) => [c.id, c]));
+  const fallbackCat = { id: 'other', label: 'Інше', icon: '📍', color: '#888' };
+  const catOf = (p: Place) => cats.get(p.kind) ?? fallbackCat;
+  const norm = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
 
-  const status = document.getElementById('map-status')!;
-  const escape = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  const app = $<HTMLDivElement>('.app');
+  const listEl = $<HTMLUListElement>('#list');
+  const status = $<HTMLParagraphElement>('#status');
+  const card = $<HTMLElement>('#card');
+  const search = $<HTMLInputElement>('#search');
+  const catBoxes = [...document.querySelectorAll<HTMLInputElement>('.cats input')];
+
+  // На телефоне снизу висит панель высотой 128px, город вписываем над ней.
+  const narrow = matchMedia('(max-width: 760px)').matches;
+  const map = createCityMap('map', {
+    fitBoundsOptions: { padding: narrow ? { top: 16, left: 16, right: 16, bottom: 144 } : 24 },
+  });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false }), 'bottom-right');
+
+  let places: Place[] = [];
+  const markers = new Map<string, { marker: maplibregl.Marker; el: HTMLDivElement }>();
+  let active: string | null = null;
+
+  function pinElement(color: string, icon: string): HTMLDivElement {
+    const el = document.createElement('div');
+    el.className = 'pin';
+    el.style.setProperty('--c', color);
+    el.innerHTML = `<span>${icon}</span>`;
+    return el;
+  }
+
+  function visible(p: Place, q: string, enabled: Set<string>): boolean {
+    if (!enabled.has(p.kind) && cats.has(p.kind)) return false;
+    if (!q) return true;
+    return norm([p.name, p.address, p.description, p.hours].filter(Boolean).join(' ')).includes(q);
+  }
+
+  function render() {
+    const q = norm(search.value.trim());
+    const enabled = new Set(catBoxes.filter((b) => b.checked).map((b) => b.value));
+    const shown = places.filter((p) => visible(p, q, enabled));
+
+    // Счётчики категорий учитывают поиск, но не галочки — видно, сколько найдётся, если включить.
+    for (const c of CATEGORIES) {
+      const n = places.filter((p) => p.kind === c.id && visible(p, q, new Set([c.id]))).length;
+      document.querySelector(`[data-count="${c.id}"]`)!.textContent = String(n);
+    }
+    for (const p of places) {
+      markers.get(p.slug)!.el.style.display = shown.includes(p) ? '' : 'none';
+    }
+
+    $('#list-count').textContent = places.length ? `${shown.length}` : '';
+    listEl.innerHTML = shown
+      .map((p) => {
+        const c = catOf(p);
+        return `<li><button type="button" data-slug="${esc(p.slug)}" aria-current="${p.slug === active}">
+          <span class="cat-icon" style="--c:${c.color}">${c.icon}</span>
+          <span>${esc(p.name)}${p.address ? `<span class="addr">${esc(p.address)}</span>` : ''}</span>
+        </button></li>`;
+      })
+      .join('');
+    if (places.length && !shown.length) status.textContent = 'Нічого не знайдено.';
+    else if (places.length) status.textContent = '';
+  }
+
+  function handle(value: string, base: string): string {
+    if (/^https?:\/\//.test(value)) return value;
+    return base + value.replace(/^@/, '');
+  }
+
+  function link(href: string, text: string) {
+    return `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(text)}</a>`;
+  }
+
+  function showCard(p: Place) {
+    const c = catOf(p);
+    const langs = p.languages
+      .split(',')
+      .map((l) => LANGUAGES[l.trim()] ?? l)
+      .join(', ');
+    const rows: [string, string][] = [];
+    if (p.address) rows.push(['Адреса', esc(p.address)]);
+    if (langs) rows.push(['Мови', esc(langs)]);
+    if (p.hours) rows.push(['Години', esc(p.hours)]);
+    if (p.phone) rows.push(['Телефон', `<a href="tel:${esc(p.phone.replace(/[^\d+]/g, ''))}">${esc(p.phone)}</a>`]);
+    if (p.website) rows.push(['Сайт', link(p.website, new URL(p.website).hostname.replace(/^www\./, ''))]);
+    if (p.telegram) rows.push(['Telegram', link(handle(p.telegram, 'https://t.me/'), p.telegram)]);
+    if (p.instagram) rows.push(['Instagram', link(handle(p.instagram, 'https://instagram.com/'), p.instagram)]);
+    if (p.facebook) rows.push(['Facebook', link(p.facebook, 'сторінка')]);
+    if (p.contacts) rows.push(['Ще', esc(p.contacts)]);
+
+    card.innerHTML = `
+      ${p.photo ? `<img src="/media/${esc(p.photo)}" alt="" loading="lazy">` : ''}
+      <button type="button" class="close" aria-label="Закрити">×</button>
+      <div class="body">
+        <h3>${esc(p.name)}</h3>
+        <span class="kind"><span class="cat-icon" style="--c:${c.color}">${c.icon}</span>${esc(c.label)}</span>
+        ${p.description ? `<p class="desc">${esc(p.description)}</p>` : ''}
+        <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+        <div class="actions">
+          ${link(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`, 'Маршрут ↗')}
+          <button type="button" class="link" data-share>Скопіювати посилання</button>
+        </div>
+        ${p.checked_at ? `<p class="muted small">Перевірено ${esc(p.checked_at.slice(0, 10))}</p>` : ''}
+      </div>`;
+    card.hidden = false;
+  }
+
+  function select(slug: string | null, fly = true) {
+    if (active) markers.get(active)?.el.classList.remove('active');
+    active = slug;
+    const p = places.find((x) => x.slug === slug);
+    if (!p) {
+      card.hidden = true;
+      if (location.hash) history.replaceState(null, '', location.pathname);
+      render();
+      return;
+    }
+    markers.get(p.slug)!.el.classList.add('active');
+    showCard(p);
+    if (location.hash !== `#${p.slug}`) history.replaceState(null, '', `#${p.slug}`);
+    if (fly) map.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.getZoom(), 15.5) });
+    app.dataset.sheet = 'peek';
+    render();
+  }
+
+  listEl.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-slug]');
+    if (btn) select(btn.dataset.slug!);
+  });
+  card.addEventListener('click', async (e) => {
+    const t = e.target as HTMLElement;
+    if (t.closest('.close')) select(null);
+    if (t.closest('[data-share]')) {
+      await navigator.clipboard?.writeText(location.href).catch(() => {});
+      t.textContent = 'Скопійовано ✓';
+    }
+  });
+  search.addEventListener('input', render);
+  for (const b of catBoxes) b.addEventListener('change', render);
+  $('#cats-all').addEventListener('click', () => {
+    catBoxes.forEach((b) => (b.checked = true));
+    render();
+  });
+  $('#cats-none').addEventListener('click', () => {
+    catBoxes.forEach((b) => (b.checked = false));
+    render();
+  });
+  $('.handle').addEventListener('click', () => {
+    app.dataset.sheet = app.dataset.sheet === 'peek' ? 'open' : 'peek';
+  });
+  search.addEventListener('focus', () => (app.dataset.sheet = 'open'));
+  window.addEventListener('hashchange', () => select(decodeURIComponent(location.hash.slice(1)) || null));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !card.hidden) select(null);
+  });
 
   try {
     const res = await fetch('/api/places');
-    const places: Place[] = await res.json();
+    if (!res.ok) throw new Error(String(res.status));
+    places = await res.json();
     for (const p of places) {
-      L.circleMarker([p.lat, p.lng], { radius: 8 })
-        .bindPopup(`<strong>${escape(p.name)}</strong>${p.address ? `<br>${escape(p.address)}` : ''}`)
-        .addTo(map);
+      const c = catOf(p);
+      const el = pinElement(c.color, c.icon);
+      el.title = p.name;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        select(p.slug, false);
+      });
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([p.lng, p.lat]).addTo(map);
+      markers.set(p.slug, { marker, el });
     }
-    status.textContent = places.length ? '' : 'Поки що місць немає.';
+    status.textContent = places.length ? '' : 'Поки що місць немає. Запропонуйте перше!';
+    render();
+    const fromHash = decodeURIComponent(location.hash.slice(1));
+    // После загрузки стиля карта заново вписывает город, поэтому к месту из ссылки летим уже после.
+    if (fromHash) {
+      if (map.loaded()) select(fromHash);
+      else map.once('load', () => select(fromHash));
+    }
   } catch {
     status.textContent = 'Не вдалося завантажити місця.';
   }
+
+  // --- Предложение места ---
+  const dialog = $<HTMLDialogElement>('#suggest');
+  const form = $<HTMLFormElement>('#suggest-form');
+  const errorEl = $<HTMLParagraphElement>('#suggest-error');
+  const banner = $<HTMLDivElement>('#pick-banner');
+  let picking = false;
+  let pickMarker: maplibregl.Marker | null = null;
+
+  $('#suggest-open').addEventListener('click', () => {
+    errorEl.hidden = true;
+    dialog.showModal();
+  });
+  dialog.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('[data-close]') || e.target === dialog) dialog.close();
+  });
+  dialog.addEventListener('close', () => {
+    if (!picking) {
+      pickMarker?.remove();
+      pickMarker = null;
+    }
+  });
+
+  function stopPicking() {
+    picking = false;
+    banner.hidden = true;
+    app.classList.remove('picking');
+    dialog.showModal();
+  }
+  $('#pick-start').addEventListener('click', () => {
+    picking = true;
+    dialog.close();
+    app.dataset.sheet = 'peek';
+    banner.hidden = false;
+    app.classList.add('picking');
+  });
+  $('#pick-cancel').addEventListener('click', stopPicking);
+  map.on('click', (e) => {
+    if (!picking) {
+      if (!card.hidden) select(null);
+      return;
+    }
+    const { lat, lng } = e.lngLat;
+    if (!insideCity(lng, lat)) return;
+    (form.elements.namedItem('lat') as HTMLInputElement).value = String(lat);
+    (form.elements.namedItem('lng') as HTMLInputElement).value = String(lng);
+    $('#pick-value').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)} ✓`;
+    const el = pinElement('#888', '📍');
+    el.classList.add('draft');
+    pickMarker?.remove();
+    pickMarker = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat(e.lngLat).addTo(map);
+    stopPicking();
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    submit.disabled = true;
+    try {
+      const res = await fetch('/api/suggestions', { method: 'POST', body: new FormData(form) });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Не вдалося надіслати, спробуйте пізніше.');
+      form.reset();
+      $('#pick-value').textContent = 'не позначено';
+      dialog.close();
+      status.textContent = 'Дякуємо! Місце з’явиться після перевірки.';
+      app.dataset.sheet = 'open';
+    } catch (err) {
+      errorEl.textContent = (err as Error).message;
+      errorEl.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
+  });
 </script>

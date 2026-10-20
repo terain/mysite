@@ -14,6 +14,12 @@
 | `/misc` | Другое | Markdown в `src/content/misc/` |
 | `/media/*` | Файлы из pCloud `<PCLOUD_ROOT>/media/` с кэшем | `src/pages/media/[...path].ts` |
 | `/api/places` | Места для карты | `src/pages/api/places.ts` |
+| `/api/suggestions` | Приём предложений мест с карты | `src/pages/api/suggestions.ts` |
+| `/diaspora/admin` | Модерация предложений и правка мест (пароль `ADMIN_PASSWORD`) | `src/pages/diaspora/admin.astro` |
+
+Карта диаспоры: вид карты (подложка, маска вокруг города, граница) — `src/diaspora/map.ts`,
+категории — `src/diaspora/categories.ts`, граница Гливице — `src/diaspora/gliwice-boundary.json`
+(официальная граница PRG ГУГиК, упрощена до ~4 м).
 
 ## Локально
 
@@ -27,9 +33,9 @@ npm run dev
 ## Первый деплой
 
 1. `npx wrangler login`
-2. База `mysite-db` уже создана (EEUR), id в `wrangler.jsonc`, миграции 0001–0002 применены
+2. База `mysite-db` уже создана (EEUR), id в `wrangler.jsonc`, миграции 0001–0002 применены, 0003 нужно применить
 3. `npm run db:migrate:remote`
-4. `npx wrangler secret put PCLOUD_TOKEN`
+4. `npx wrangler secret put PCLOUD_TOKEN` и `npx wrangler secret put ADMIN_PASSWORD`
 5. `npm run deploy`
 
 Дальше удобнее подключить репозиторий в Cloudflare (Workers → Settings → Builds), тогда каждый push в `main` деплоит сам.

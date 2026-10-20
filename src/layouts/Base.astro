@@ -7,8 +7,10 @@ interface Props {
   lang?: string;
   // Разделы изолированы: в шапке только свой раздел, ссылок на другие нет.
   section?: { href: string; label: string };
+  // Страница на весь экран без отступов (карта).
+  full?: boolean;
 }
-const { title, description, lang = 'ru', section } = Astro.props;
+const { title, description, lang = 'ru', section, full = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -21,17 +23,17 @@ const { title, description, lang = 'ru', section } = Astro.props;
     {description && <meta name="description" content={description} />}
     <slot name="head" />
   </head>
-  <body>
+  <body class:list={{ full }}>
     {
       section && (
         <header class="site">
-          <nav class="wrap">
+          <nav class:list={{ wrap: !full, 'wrap-full': full }}>
             <a class="brand" href={section.href}>{section.label}</a>
           </nav>
         </header>
       )
     }
-    <main class="wrap">
+    <main class:list={{ wrap: !full }}>
       <slot />
     </main>
   </body>
