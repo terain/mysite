@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mysite",
+  // Свой entrypoint: fetch отдаём Astro, scheduled — ночной бэкап в pCloud.
+  "main": "./src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mysite-db",
+      // Заменить на id из `npx wrangler d1 create mysite-db`
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "triggers": {
+    // Каждый день в 03:00 UTC
+    "crons": ["0 3 * * *"]
+  },
+  "vars": {
+    // eapi.pcloud.com для аккаунтов в EU, api.pcloud.com для US
+    "PCLOUD_API_HOST": "eapi.pcloud.com",
+    // Корневая папка сайта в pCloud: внутри media/ и backup/
+    "PCLOUD_ROOT": "/site",
+    "BACKUP_KEEP_DAYS": "30"
+  }
+  // Секрет: npx wrangler secret put PCLOUD_TOKEN
+}

@@ -1,0 +1,50 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  lang?: string;
+}
+const { title, description, lang = 'ru' } = Astro.props;
+
+const sections = [
+  { href: '/diaspora', label: 'Діаспора' },
+  { href: '/dnd', label: 'DnD' },
+  { href: '/quest', label: 'Квест' },
+  { href: '/misc', label: 'Другое' },
+];
+const current = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <slot name="head" />
+  </head>
+  <body>
+    <header class="site">
+      <nav class="wrap">
+        <a class="brand" href="/">Максим</a>
+        {
+          sections.map((s) => (
+            <a href={s.href} aria-current={current.startsWith(s.href) ? 'page' : undefined}>
+              {s.label}
+            </a>
+          ))
+        }
+      </nav>
+    </header>
+    <main class="wrap">
+      <slot />
+    </main>
+    <footer class="site">
+      <div class="wrap">© {new Date().getFullYear()}</div>
+    </footer>
+  </body>
+</html>

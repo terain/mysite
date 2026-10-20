@@ -1,0 +1,56 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="Українці в Гливицях" description="Карта місць, де обслуговують українською, і місць для зустрічей" lang="uk">
+  <h1>Українці в Гливицях</h1>
+  <p class="muted">Місця, де обслуговують українською, і де можна зібратися.</p>
+  <div id="map"></div>
+  <p id="map-status" class="muted"></p>
+</Base>
+
+<style>
+  #map {
+    height: min(70vh, 560px);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+</style>
+
+<script>
+  import L from 'leaflet';
+  import 'leaflet/dist/leaflet.css';
+
+  interface Place {
+    slug: string;
+    name: string;
+    kind: string;
+    description: string | null;
+    address: string | null;
+    lat: number;
+    lng: number;
+  }
+
+  // Центр Гливице
+  const map = L.map('map').setView([50.2945, 18.6714], 14);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(map);
+
+  const status = document.getElementById('map-status')!;
+  const escape = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+  try {
+    const res = await fetch('/api/places');
+    const places: Place[] = await res.json();
+    for (const p of places) {
+      L.circleMarker([p.lat, p.lng], { radius: 8 })
+        .bindPopup(`<strong>${escape(p.name)}</strong>${p.address ? `<br>${escape(p.address)}` : ''}`)
+        .addTo(map);
+    }
+    status.textContent = places.length ? '' : 'Поки що місць немає.';
+  } catch {
+    status.textContent = 'Не вдалося завантажити місця.';
+  }
+</script>

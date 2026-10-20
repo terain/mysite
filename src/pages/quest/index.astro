@@ -1,0 +1,15 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+// Пока просто список. Открытие шагов по прогрессу игрока — в ветке квеста.
+const steps = (await getCollection('quest')).sort((a, b) => a.data.order - b.data.order);
+---
+
+<Base title="Квест">
+  <h1>Квест</h1>
+  <p class="muted">Механика заданий появится позже.</p>
+  <ol>
+    {steps.map((s) => <li>{s.data.title}</li>)}
+  </ol>
+</Base>
