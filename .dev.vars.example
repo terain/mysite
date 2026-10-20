@@ -1,2 +1,3 @@
 # Скопируй в .dev.vars для локальной разработки
 PCLOUD_TOKEN=
+ADMIN_PASSWORD=
