@@ -10,8 +10,7 @@
     {
       "binding": "DB",
       "database_name": "mysite-db",
-      // Заменить на id из `npx wrangler d1 create mysite-db`
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "12aa5b4a-6f06-4001-9a10-2a9524606dbe",
       "migrations_dir": "migrations"
     }
   ],

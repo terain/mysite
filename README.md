@@ -27,7 +27,7 @@ npm run dev
 ## Первый деплой
 
 1. `npx wrangler login`
-2. `npx wrangler d1 create mysite-db` и вписать `database_id` в `wrangler.jsonc`
+2. База `mysite-db` уже создана (EEUR), id в `wrangler.jsonc`, миграции 0001–0002 применены
 3. `npm run db:migrate:remote`
 4. `npx wrangler secret put PCLOUD_TOKEN`
 5. `npm run deploy`
