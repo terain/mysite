@@ -6,6 +6,11 @@
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Свой домен: Cloudflare сам создаёт DNS-запись и сертификат
+  "routes": [
+    { "pattern": "strokov.me", "custom_domain": true },
+    { "pattern": "www.strokov.me", "custom_domain": true }
+  ],
   "d1_databases": [
     {
       "binding": "DB",

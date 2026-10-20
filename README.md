@@ -1,7 +1,7 @@
 # mysite
 
 Личный сайт: Astro в одном Cloudflare Worker. База — Cloudflare D1, файлы и бэкапы — pCloud.
-Подробная архитектура: [документ](https://claude.ai/artifact/QfbfKq9kmiX8jV8hrmoGTV).
+Адрес: https://strokov.me. Подробная архитектура: [документ](https://claude.ai/artifact/QfbfKq9kmiX8jV8hrmoGTV).
 
 ## Разделы
 
