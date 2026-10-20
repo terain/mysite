@@ -1,0 +1,377 @@
+---
+import { env } from 'cloudflare:workers';
+import Base from '../../layouts/Base.astro';
+import { CATEGORIES, LANGUAGES } from '../../diaspora/categories';
+import { parsePlace, slugify, type PlaceInput } from '../../diaspora/place';
+import { ADMIN_COOKIE, ADMIN_COOKIE_OPTIONS, checkPassword, isAdmin } from '../../server/admin';
+
+export const prerender = false;
+
+// Админка карты диаспоры: модерация предложений и правка мест. Для Максима, поэтому по-русски.
+
+interface PlaceRow extends PlaceInput {
+  id: number;
+  slug: string;
+  status: 'draft' | 'published';
+  checked_at: string | null;
+}
+interface SuggestionRow {
+  id: number;
+  place_id: number | null;
+  payload: string;
+  created_at: string;
+}
+
+const self = '/diaspora/admin';
+let error: string | null = null;
+let authed = await isAdmin(env, Astro.cookies.get(ADMIN_COOKIE)?.value);
+
+async function uniqueSlug(name: string, exceptId?: number): Promise<string> {
+  const base = slugify(name);
+  for (let i = 1; ; i++) {
+    const slug = i === 1 ? base : `${base}-${i}`;
+    const row = await env.DB.prepare('SELECT id FROM places WHERE slug = ?').bind(slug).first<{ id: number }>();
+    if (!row || row.id === exceptId) return slug;
+  }
+}
+
+const COLS = [
+  'name', 'kind', 'description', 'address', 'lat', 'lng', 'languages', 'hours', 'phone', 'website',
+  'telegram', 'instagram', 'facebook', 'photo', 'contacts',
+] as const;
+
+async function insertPlace(p: PlaceInput, status: 'draft' | 'published'): Promise<number> {
+  const slug = await uniqueSlug(p.name);
+  const row = await env.DB.prepare(
+    `INSERT INTO places (slug, status, updated_at, ${COLS.join(', ')})
+     VALUES (?, ?, datetime('now'), ${COLS.map(() => '?').join(', ')}) RETURNING id`,
+  )
+    .bind(slug, status, ...COLS.map((c) => p[c]))
+    .first<{ id: number }>();
+  return row!.id;
+}
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action'));
+
+  if (action === 'login') {
+    const token = await checkPassword(env, String(form.get('password') ?? ''));
+    if (token) {
+      Astro.cookies.set(ADMIN_COOKIE, token, ADMIN_COOKIE_OPTIONS);
+      return Astro.redirect(self, 303);
+    }
+    error = env.ADMIN_PASSWORD ? 'Неверный пароль.' : 'Секрет ADMIN_PASSWORD не задан.';
+  } else if (!authed) {
+    return new Response('Forbidden', { status: 403 });
+  } else if (action === 'logout') {
+    Astro.cookies.delete(ADMIN_COOKIE, { path: ADMIN_COOKIE_OPTIONS.path });
+    return Astro.redirect(self, 303);
+  } else if (action === 'accept' || action === 'reject') {
+    const id = Number(form.get('id'));
+    const s = await env.DB.prepare("SELECT * FROM suggestions WHERE id = ? AND status = 'new'")
+      .bind(id)
+      .first<SuggestionRow>();
+    if (s) {
+      await env.DB.prepare('UPDATE suggestions SET status = ? WHERE id = ?')
+        .bind(action === 'accept' ? 'accepted' : 'rejected', id)
+        .run();
+      if (action === 'accept') {
+        // Принятое предложение становится черновиком: проверить и опубликовать в форме.
+        const placeId = await insertPlace(JSON.parse(s.payload) as PlaceInput, 'draft');
+        return Astro.redirect(`${self}?edit=${placeId}`, 303);
+      }
+    }
+    return Astro.redirect(self, 303);
+  } else if (action === 'save') {
+    const id = Number(form.get('id')) || 0;
+    const parsed = parsePlace(form);
+    const status = form.get('status') === 'published' ? 'published' : 'draft';
+    const checked = form.get('checked') === 'on';
+    if ('error' in parsed) {
+      error = parsed.error;
+    } else if (id) {
+      await env.DB.prepare(
+        `UPDATE places SET ${COLS.map((c) => `${c} = ?`).join(', ')}, status = ?, updated_at = datetime('now')
+         ${checked ? ", checked_at = date('now')" : ''} WHERE id = ?`,
+      )
+        .bind(...COLS.map((c) => parsed.place[c]), status, id)
+        .run();
+      return Astro.redirect(self, 303);
+    } else {
+      const newId = await insertPlace(parsed.place, status);
+      if (checked) await env.DB.prepare("UPDATE places SET checked_at = date('now') WHERE id = ?").bind(newId).run();
+      return Astro.redirect(self, 303);
+    }
+  } else if (action === 'delete') {
+    await env.DB.prepare('DELETE FROM places WHERE id = ?').bind(Number(form.get('id'))).run();
+    return Astro.redirect(self, 303);
+  }
+}
+
+const url = Astro.url;
+const editId = Number(url.searchParams.get('edit')) || 0;
+const creating = url.searchParams.has('new');
+let editing: Partial<PlaceRow> | null = null;
+let suggestions: (SuggestionRow & { data: PlaceInput & { note?: string } })[] = [];
+let places: PlaceRow[] = [];
+
+if (authed) {
+  if (editId) editing = await env.DB.prepare('SELECT * FROM places WHERE id = ?').bind(editId).first<PlaceRow>();
+  else if (creating) editing = { languages: 'uk', status: 'draft' };
+  // Ошибка сохранения: показываем форму снова с тем, что ввели.
+  if (error && Astro.request.method === 'POST') {
+    const form = await Astro.request.clone().formData().catch(() => null);
+    if (form && form.get('action') === 'save') {
+      editing = Object.fromEntries([...form.keys()].map((k) => [k, form.get(k)])) as Partial<PlaceRow>;
+      editing.languages = form.getAll('languages').join(',');
+      editing.id = Number(form.get('id')) || undefined;
+    }
+  }
+  if (!editing) {
+    const s = await env.DB.prepare("SELECT * FROM suggestions WHERE status = 'new' ORDER BY created_at").all<SuggestionRow>();
+    suggestions = s.results.map((r) => ({ ...r, data: JSON.parse(r.payload) }));
+    places = (await env.DB.prepare('SELECT * FROM places ORDER BY status, name').all<PlaceRow>()).results;
+  }
+}
+
+const cat = (id: string | undefined) => CATEGORIES.find((c) => c.id === id);
+const langs = new Set((editing?.languages ?? '').split(','));
+Astro.response.headers.set('Cache-Control', 'no-store');
+---
+
+<Base section={{ href: '/diaspora', label: 'Українці в Гливицях' }} title="Админка карты" lang="ru">
+  <meta slot="head" name="robots" content="noindex" />
+
+  {
+    !authed && (
+      <form method="post" class="login">
+        <h1>Вход</h1>
+        <input type="hidden" name="action" value="login" />
+        <input type="password" name="password" placeholder="Пароль" required autofocus />
+        <button type="submit">Войти</button>
+        {error && <p class="error">{error}</p>}
+      </form>
+    )
+  }
+
+  {
+    authed && editing && (
+      <form method="post" class="edit">
+        <h1>{editing.id ? 'Место' : 'Новое место'}</h1>
+        {error && <p class="error">{error}</p>}
+        <input type="hidden" name="action" value="save" />
+        <input type="hidden" name="id" value={editing.id ?? ''} />
+        <label>
+          Название
+          <input name="name" required value={editing.name ?? ''} />
+        </label>
+        <label>
+          Категория
+          <select name="kind" required>
+            {CATEGORIES.map((c) => (
+              <option value={c.id} selected={c.id === editing!.kind}>
+                {c.icon} {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Адрес
+          <input name="address" value={editing.address ?? ''} />
+        </label>
+        <div id="pick-map" data-lat={editing.lat ?? ''} data-lng={editing.lng ?? ''} />
+        <div class="row">
+          <label>
+            Широта
+            <input name="lat" required inputmode="decimal" value={editing.lat ?? ''} />
+          </label>
+          <label>
+            Долгота
+            <input name="lng" required inputmode="decimal" value={editing.lng ?? ''} />
+          </label>
+        </div>
+        <fieldset>
+          <legend>Языки</legend>
+          {Object.entries(LANGUAGES).map(([id, label]) => (
+            <label class="inline">
+              <input type="checkbox" name="languages" value={id} checked={langs.has(id)} /> {label}
+            </label>
+          ))}
+        </fieldset>
+        <label>
+          Описание (по-украински)
+          <textarea name="description" rows="4">{editing.description ?? ''}</textarea>
+        </label>
+        <label>
+          Часы работы
+          <input name="hours" value={editing.hours ?? ''} />
+        </label>
+        <div class="row">
+          <label>
+            Телефон
+            <input name="phone" value={editing.phone ?? ''} />
+          </label>
+          <label>
+            Сайт
+            <input name="website" value={editing.website ?? ''} />
+          </label>
+          <label>
+            Telegram
+            <input name="telegram" value={editing.telegram ?? ''} />
+          </label>
+          <label>
+            Instagram
+            <input name="instagram" value={editing.instagram ?? ''} />
+          </label>
+          <label>
+            Facebook
+            <input name="facebook" value={editing.facebook ?? ''} />
+          </label>
+          <label>
+            Фото (путь в pCloud media/)
+            <input name="photo" value={editing.photo ?? ''} placeholder="diaspora/cafe.jpg" />
+          </label>
+        </div>
+        <label>
+          Ещё контакты / заметка
+          <input name="contacts" value={editing.contacts ?? ''} />
+        </label>
+        <label class="inline">
+          <input type="checkbox" name="status" value="published" checked={editing.status === 'published'} />
+          Опубликовано
+        </label>
+        <label class="inline">
+          <input type="checkbox" name="checked" />
+          Проверено сегодня{editing.checked_at && ` (было ${editing.checked_at})`}
+        </label>
+        <div class="buttons">
+          <a href={self}>Отмена</a>
+          <button type="submit">Сохранить</button>
+        </div>
+      </form>
+    )
+  }
+
+  {
+    authed && editing?.id && (
+      <form method="post" class="danger" onsubmit="return confirm('Удалить место насовсем?')">
+        <input type="hidden" name="action" value="delete" />
+        <input type="hidden" name="id" value={editing.id} />
+        <button type="submit">Удалить место</button>
+      </form>
+    )
+  }
+
+  {
+    authed && !editing && (
+      <>
+        <div class="top">
+          <h1>Карта диаспоры</h1>
+          <form method="post">
+            <input type="hidden" name="action" value="logout" />
+            <button type="submit" class="link">Выйти</button>
+          </form>
+        </div>
+
+        <h2>Предложения ({suggestions.length})</h2>
+        {suggestions.length === 0 && <p class="muted">Новых нет.</p>}
+        {suggestions.map((s) => (
+          <div class="item">
+            <div>
+              <strong>
+                {cat(s.data.kind)?.icon} {s.data.name}
+              </strong>
+              <div class="muted small">
+                {[s.data.address, s.data.hours, s.data.phone, s.created_at].filter(Boolean).join(' · ')}
+              </div>
+              {s.data.description && <p class="small">{s.data.description}</p>}
+              {s.data.note && <p class="small">Комментарий: {s.data.note}</p>}
+              <a class="small" href={`https://www.openstreetmap.org/?mlat=${s.data.lat}&mlon=${s.data.lng}#map=18/${s.data.lat}/${s.data.lng}`} target="_blank" rel="noopener">точка на карте ↗</a>
+            </div>
+            <form method="post" class="actions">
+              <input type="hidden" name="id" value={s.id} />
+              <button type="submit" name="action" value="accept">Принять</button>
+              <button type="submit" name="action" value="reject">Отклонить</button>
+            </form>
+          </div>
+        ))}
+
+        <div class="top">
+          <h2>Места ({places.length})</h2>
+          <a href={`${self}?new`}>+ Добавить</a>
+        </div>
+        {places.map((p) => (
+          <a class="item place" href={`${self}?edit=${p.id}`}>
+            <span>
+              {cat(p.kind)?.icon} {p.name}
+              <span class="muted small"> {p.address}</span>
+            </span>
+            <span class:list={['badge', p.status]}>{p.status === 'published' ? 'опубликовано' : 'черновик'}</span>
+          </a>
+        ))}
+      </>
+    )
+  }
+</Base>
+
+<style>
+  form { display: flex; flex-direction: column; gap: 10px; }
+  .login { max-width: 320px; }
+  .edit { max-width: 640px; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 15px; }
+  label.inline { flex-direction: row; align-items: center; gap: 6px; display: inline-flex; margin-right: 12px; }
+  input:not([type='checkbox']), select, textarea {
+    font: inherit;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  fieldset { border: 1px solid var(--border); border-radius: 8px; }
+  button { font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; }
+  button[type='submit']:not(.link) { border-color: var(--accent); }
+  button.link { border: 0; padding: 0; color: var(--accent); background: none; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .buttons { display: flex; justify-content: flex-end; align-items: center; gap: 16px; }
+  .danger { margin-top: 24px; align-items: flex-start; }
+  .danger button { color: #d64545; border-color: #d64545; }
+  .error { color: #d64545; }
+  .top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+  .item { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .item p { margin: 4px 0; }
+  .item .actions { flex-direction: row; align-items: flex-start; }
+  a.place { color: var(--text); text-decoration: none; }
+  a.place:hover { color: var(--accent); }
+  .small { font-size: 14px; }
+  .badge { font-size: 13px; padding: 1px 8px; border-radius: 999px; white-space: nowrap; align-self: center; }
+  .badge.published { background: color-mix(in srgb, #2e9e5b 20%, transparent); }
+  .badge.draft { background: color-mix(in srgb, var(--muted) 20%, transparent); }
+  #pick-map { height: 300px; border-radius: 10px; border: 1px solid var(--border); }
+  @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+  import { createCityMap, maplibregl } from '../../diaspora/map';
+
+  // Точка места: клик по карте или перетаскивание маркера заполняет широту и долготу.
+  const el = document.getElementById('pick-map');
+  if (el) {
+    const lat = document.querySelector<HTMLInputElement>('input[name="lat"]')!;
+    const lng = document.querySelector<HTMLInputElement>('input[name="lng"]')!;
+    const start: [number, number] = lat.value && lng.value ? [Number(lng.value), Number(lat.value)] : [18.6714, 50.2945];
+    const map = createCityMap(el, lat.value ? { center: start, zoom: 16, bounds: undefined } : {});
+    const marker = new maplibregl.Marker({ draggable: true }).setLngLat(start);
+    if (lat.value) marker.addTo(map);
+    const set = (p: maplibregl.LngLat) => {
+      lat.value = p.lat.toFixed(6);
+      lng.value = p.lng.toFixed(6);
+    };
+    marker.on('dragend', () => set(marker.getLngLat()));
+    map.on('click', (e) => {
+      marker.setLngLat(e.lngLat).addTo(map);
+      set(e.lngLat);
+    });
+  }
+</script>
