@@ -1,26 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
+// Заглушка: разделы открываются только по прямой ссылке.
 ---
 
-<Base title="Максим" description="Личный сайт">
-  <h1>Привет!</h1>
-  <p class="muted">Здесь будет пара слов о себе.</p>
-  <div class="cards">
-    <a class="card" href="/diaspora">
-      <h2>Діаспора в Гливицях</h2>
-      <p>Карта місць, де обслуговують українською, і де можна зібратися.</p>
-    </a>
-    <a class="card" href="/dnd">
-      <h2>DnD</h2>
-      <p>Мир, кампании, персонажи.</p>
-    </a>
-    <a class="card" href="/quest">
-      <h2>Квест</h2>
-      <p>Задания и загадки.</p>
-    </a>
-    <a class="card" href="/misc">
-      <h2>Другое</h2>
-      <p>Заметки и проекты.</p>
-    </a>
-  </div>
+<Base title="strokov.me">
+  <meta slot="head" name="robots" content="noindex" />
 </Base>

@@ -7,7 +7,7 @@
 
 | Путь | Что там | Где править |
 | --- | --- | --- |
-| `/` | Главная | `src/pages/index.astro` |
+| `/` | Пустая заглушка (разделы только по прямой ссылке) | `src/pages/index.astro` |
 | `/diaspora` | Карта диаспоры в Гливице | `src/pages/diaspora/`, таблица `places` в D1 |
 | `/dnd` | DnD | Markdown в `src/content/dnd/` |
 | `/quest` | Квест | Markdown в `src/content/quest/`, ответы в D1 |

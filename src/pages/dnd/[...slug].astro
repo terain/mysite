@@ -11,8 +11,7 @@ const { entry } = Astro.props;
 const { Content } = await render(entry);
 ---
 
-<Base title={`${entry.data.title} — DnD`} description={entry.data.description}>
-  <p><a href="/dnd">← DnD</a></p>
+<Base section={{ href: '/dnd', label: 'DnD' }} title={`${entry.data.title} — DnD`} description={entry.data.description}>
   <h1>{entry.data.title}</h1>
   <Content />
 </Base>

@@ -6,7 +6,7 @@ import Base from '../../layouts/Base.astro';
 const steps = (await getCollection('quest')).sort((a, b) => a.data.order - b.data.order);
 ---
 
-<Base title="Квест">
+<Base section={{ href: '/quest', label: 'Квест' }} title="Квест">
   <h1>Квест</h1>
   <p class="muted">Механика заданий появится позже.</p>
   <ol>

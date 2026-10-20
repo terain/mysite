@@ -5,16 +5,10 @@ interface Props {
   title: string;
   description?: string;
   lang?: string;
+  // Разделы изолированы: в шапке только свой раздел, ссылок на другие нет.
+  section?: { href: string; label: string };
 }
-const { title, description, lang = 'ru' } = Astro.props;
-
-const sections = [
-  { href: '/diaspora', label: 'Діаспора' },
-  { href: '/dnd', label: 'DnD' },
-  { href: '/quest', label: 'Квест' },
-  { href: '/misc', label: 'Другое' },
-];
-const current = Astro.url.pathname;
+const { title, description, lang = 'ru', section } = Astro.props;
 ---
 
 <!doctype html>
@@ -28,23 +22,17 @@ const current = Astro.url.pathname;
     <slot name="head" />
   </head>
   <body>
-    <header class="site">
-      <nav class="wrap">
-        <a class="brand" href="/">Максим</a>
-        {
-          sections.map((s) => (
-            <a href={s.href} aria-current={current.startsWith(s.href) ? 'page' : undefined}>
-              {s.label}
-            </a>
-          ))
-        }
-      </nav>
-    </header>
+    {
+      section && (
+        <header class="site">
+          <nav class="wrap">
+            <a class="brand" href={section.href}>{section.label}</a>
+          </nav>
+        </header>
+      )
+    }
     <main class="wrap">
       <slot />
     </main>
-    <footer class="site">
-      <div class="wrap">© {new Date().getFullYear()}</div>
-    </footer>
   </body>
 </html>
