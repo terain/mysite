@@ -10,6 +10,7 @@
 | `/` | Пустая заглушка (разделы только по прямой ссылке) | `src/pages/index.astro` |
 | `/diaspora` | Карта диаспоры в Гливице | `src/pages/diaspora/`, таблица `places` в D1 |
 | `/dnd` | DnD | Markdown в `src/content/dnd/` |
+| `/dnd/map` | Карта мира DnD | `src/content/dnd-map/`, подложка `public/dnd/map/base.svg` |
 | `/quest` | Квест | Markdown в `src/content/quest/`, ответы в D1 |
 | `/misc` | Другое | Markdown в `src/content/misc/` |
 | `/media/*` | Файлы из pCloud `<PCLOUD_ROOT>/media/` с кэшем | `src/pages/media/[...path].ts` |
@@ -20,6 +21,16 @@
 Карта диаспоры: вид карты (подложка, маска вокруг города, граница) — `src/diaspora/map.ts`,
 категории — `src/diaspora/categories.ts`, граница Гливице — `src/diaspora/gliwice-boundary.json`
 (официальная граница PRG ГУГиК, упрощена до ~4 м).
+
+Карта мира DnD (`/dnd/map`):
+
+- Подложка — готовый SVG `public/dnd/map/base.svg`, его размер (viewBox) — в `src/dnd/base.json`.
+  Обновляет оба файла и делает commit + push `scripts/dnd-map-sync.sh [путь к svg]`
+  (по умолчанию `~/Документы/dnd/карты/земля.svg`). Файл больше 25 МиБ Cloudflare не примет.
+- Слои — `src/content/dnd-map/layers.json`: `kind: zones` (области) или `icons` (значки).
+- Объекты — `src/content/dnd-map/<id слоя>/<объект>.md`: `title`, `summary`, `icon`, `color`,
+  `point: [x, y]` или `area: [[x, y], ...]` в единицах SVG; текст файла — карточка справа.
+  Координаты удобно снимать на `/dnd/map?edit`. `gmOnly: true` — объект на сайт не попадает.
 
 ## Локально
 

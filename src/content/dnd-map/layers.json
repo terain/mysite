@@ -1,0 +1,4 @@
+[
+  { "id": "politics", "title": "Политические зоны", "kind": "zones", "color": "#b5452f", "order": 1 },
+  { "id": "settlements", "title": "Поселения", "kind": "icons", "color": "#2f4f8a", "order": 2 }
+]
