@@ -1,7 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import base from '../../dnd/base.json';
+import base from '../../../public/dnd/map/map.json';
 import type { MapData } from '../../dnd/map';
 
 const layers = (await getCollection('dndLayers')).map((l) => ({ id: l.id, ...l.data })).sort((a, b) => a.order - b.order);
@@ -23,7 +23,7 @@ const places = await Promise.all(
 );
 
 const data: MapData = {
-  base: { url: '/dnd/map/base.svg', ...base },
+  base,
   layers: layers.map(({ id, title, kind, color, visible }) => ({ id, title, kind, color, visible })),
   places: places.map(({ entry: e, layer }) => ({
     id: e.id,
@@ -112,7 +112,6 @@ const data: MapData = {
   }
   .world.open { --right: clamp(320px, 33%, 560px); }
   #world-map { min-height: 0; min-width: 0; background: #d9ccae; }
-  .base-layer { image-rendering: auto; }
 
   .layers { border-right: 1px solid var(--border); background: var(--bg); overflow: auto; z-index: 2; }
   .layers-toggle { display: none; }

@@ -16,7 +16,7 @@ const dnd = defineCollection({
 
 // Карта мира DnD: слои — src/content/dnd-map/layers.json,
 // объекты — src/content/dnd-map/<id слоя>/<объект>.md (слой берётся из папки).
-// Координаты — в единицах SVG подложки (как X/Y в Inkscape, y вниз).
+// Координаты — в единицах холста карты (viewBox земля.svg, как X/Y в Inkscape, y вниз).
 const dndLayers = defineCollection({
   loader: file('./src/content/dnd-map/layers.json'),
   schema: z.object({

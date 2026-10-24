@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1000" viewBox="0 0 2000 1000">
-  <!-- Временная подложка. Её заменяет scripts/dnd-map-sync.sh готовой картой. -->
-  <rect width="2000" height="1000" fill="#e8dcc0"/>
-  <path d="M520 220 C 760 120, 1220 140, 1380 300 S 1500 720, 1180 800 S 600 860, 460 640 S 300 320, 520 220 Z" fill="#c9b98f" stroke="#8a7650" stroke-width="3"/>
-  <g stroke="#b9a983" stroke-width="1" fill="none">
-    <path d="M0 250H2000M0 500H2000M0 750H2000M500 0V1000M1000 0V1000M1500 0V1000"/>
-  </g>
-  <text x="1000" y="950" font-family="serif" font-size="36" fill="#6b5a3a" text-anchor="middle">Здесь будет карта мира</text>
-</svg>

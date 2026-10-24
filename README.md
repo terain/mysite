@@ -10,7 +10,7 @@
 | `/` | Пустая заглушка (разделы только по прямой ссылке) | `src/pages/index.astro` |
 | `/diaspora` | Карта диаспоры в Гливице | `src/pages/diaspora/`, таблица `places` в D1 |
 | `/dnd` | DnD | Markdown в `src/content/dnd/` |
-| `/dnd/map` | Карта мира DnD | `src/content/dnd-map/`, подложка `public/dnd/map/base.svg` |
+| `/dnd/map` | Карта мира DnD | `src/content/dnd-map/`, тайлы `public/dnd/map/` |
 | `/quest` | Квест | Markdown в `src/content/quest/`, ответы в D1 |
 | `/misc` | Другое | Markdown в `src/content/misc/` |
 | `/media/*` | Файлы из pCloud `<PCLOUD_ROOT>/media/` с кэшем | `src/pages/media/[...path].ts` |
@@ -24,15 +24,16 @@
 
 Карта мира DnD (`/dnd/map`):
 
-- Подложка — запечённый SVG `public/dnd/map/base.svg`, его размер (viewBox) — в `src/dnd/base.json`.
-  Полная карта собирается у Максима (`собрать.py`), затем
-  `scripts/dnd-map-bake.py земля.svg земля-запечённая.svg` выкидывает служебное Inkscape,
-  скрытые слои и лишние знаки в координатах, а `scripts/dnd-map-sync.sh [путь к svg]`
-  кладёт запечённую копию в сайт и делает commit + push. Файл больше 25 МиБ Cloudflare не примет.
+- Подложка — тайлы `public/dnd/map/tiles/<уровень>/<x>/<y>.webp` и `public/dnd/map/map.json`
+  (размер холста и число уровней). Целую `земля.svg` (55 МБ) браузер рисует по минуте,
+  поэтому карта «запекается» в картинки: `scripts/dnd-map-tiles.py земля.svg public/dnd/map`
+  (rsvg-convert в 2× размере холста, нарезка по 512 px, ~15 МиБ).
+  `scripts/dnd-map-sync.sh [путь к земля.svg]` делает это и сразу commit + push.
 - Слои — `src/content/dnd-map/layers.json`: `kind: zones` (области) или `icons` (значки).
 - Объекты — `src/content/dnd-map/<id слоя>/<объект>.md`: `title`, `summary`, `icon`, `color`,
-  `point: [x, y]` или `area: [[x, y], ...]` в единицах SVG; текст файла — карточка справа.
-  Координаты удобно снимать на `/dnd/map?edit`. `gmOnly: true` — объект на сайт не попадает.
+  `point: [x, y]` или `area: [[x, y], ...]` в единицах холста (viewBox `земля.svg`, как X/Y в Inkscape);
+  текст файла — карточка справа. Координаты удобно снимать на `/dnd/map?edit`.
+  `gmOnly: true` — объект на сайт не попадает.
 
 ## Локально
 

@@ -1,4 +1,4 @@
 [
-  { "id": "politics", "title": "Политические зоны", "kind": "zones", "color": "#b5452f", "order": 1 },
-  { "id": "settlements", "title": "Поселения", "kind": "icons", "color": "#2f4f8a", "order": 2 }
+  { "id": "portals", "title": "Порталы стихий", "kind": "icons", "color": "#7a2f8a", "order": 1 },
+  { "id": "planes", "title": "Промежуточные планы", "kind": "icons", "color": "#2f6f8a", "order": 2 }
 ]

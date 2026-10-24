@@ -1,47 +1,23 @@
 #!/usr/bin/env bash
-# Кладёт запечённую карту мира в сайт как подложку /dnd/map и отправляет в гит.
-# Запуск из любой папки:  scripts/dnd-map-sync.sh [путь к svg]
-# Обычно его вызывает собрать.py после scripts/dnd-map-bake.py.
-# После push в main Cloudflare сам выкладывает сайт.
+# Запекает карту мира в тайлы и отправляет их в гит — сайт /dnd/map обновится сам.
+# Запуск из любой папки:  scripts/dnd-map-sync.sh [путь к земля.svg]
+# Нужны rsvg-convert (librsvg2-bin) и Pillow. После push в main Cloudflare выкладывает сайт.
 set -euo pipefail
 
-SRC="${1:-$HOME/Документы/dnd/карты/земля-запечённая.svg}"
+SRC="${1:-$HOME/Документы/dnd/карты/земля.svg}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-DEST="$REPO/public/dnd/map/base.svg"
-# Cloudflare Workers не принимает статический файл больше 25 МиБ
-LIMIT=$((25 * 1024 * 1024))
 
 [ -f "$SRC" ] || { echo "Нет файла: $SRC" >&2; exit 1; }
-SIZE=$(stat -c %s "$SRC")
-if [ "$SIZE" -gt "$LIMIT" ]; then
-  echo "Карта весит $((SIZE / 1024 / 1024)) МиБ, а Cloudflare берёт файлы до 25 МиБ." >&2
-  echo "Нужна облегчённая («запечённая») версия карты." >&2
-  exit 1
-fi
-
-# Размер холста — из viewBox корневого <svg>: в этих единицах координаты объектов
-read -r W H < <(python3 - "$SRC" <<'PY'
-import re, sys
-head = open(sys.argv[1], encoding='utf-8', errors='ignore').read(200_000)
-tag = re.search(r'<svg\b[^>]*>', head, re.S).group(0)
-vb = re.search(r'viewBox\s*=\s*["\']([^"\']+)', tag)
-if not vb:
-    sys.exit('У <svg> нет viewBox')
-_, _, w, h = (float(v) for v in re.split(r'[\s,]+', vb.group(1).strip()))
-print(f'{w:g} {h:g}')
-PY
-)
 
 cd "$REPO"
 git pull -q --rebase --autostash
-cp "$SRC" "$DEST"
-printf '{ "width": %s, "height": %s }\n' "$W" "$H" > "$REPO/src/dnd/base.json"
+python3 scripts/dnd-map-tiles.py "$SRC" public/dnd/map
 
-git add public/dnd/map/base.svg src/dnd/base.json
+git add -A public/dnd/map
 if git diff --cached --quiet; then
   echo "Карта не изменилась."
   exit 0
 fi
-git commit -q -m "Карта мира: новая подложка ($(date +%F))"
+git commit -q -m "Карта мира: новые тайлы ($(date +%F))"
 git push -q
-echo "Готово: подложка ${W}×${H}, $((SIZE / 1024)) КиБ, отправлено в $(git rev-parse --abbrev-ref HEAD)."
+echo "Отправлено в $(git rev-parse --abbrev-ref HEAD)."

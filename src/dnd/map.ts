@@ -22,8 +22,18 @@ export interface MapPlace {
   area?: [number, number][];
 }
 
+/** public/dnd/map/map.json — его пишет scripts/dnd-map-tiles.py */
+export interface MapBase {
+  width: number;
+  height: number;
+  /** Во сколько раз самый подробный уровень тайлов крупнее холста */
+  scale: number;
+  levels: number;
+  tileSize: number;
+}
+
 export interface MapData {
-  base: { url: string; width: number; height: number };
+  base: MapBase;
   layers: MapLayer[];
   places: MapPlace[];
 }
@@ -33,7 +43,7 @@ const SvgCRS = L.extend({}, L.CRS.Simple, { transformation: new L.Transformation
 
 export const toLatLng = ([x, y]: [number, number]) => L.latLng(y, x);
 
-export function createWorldMap(el: HTMLElement, base: MapData['base']) {
+export function createWorldMap(el: HTMLElement, base: MapBase) {
   const bounds = L.latLngBounds([0, 0], [base.height, base.width]);
   const map = L.map(el, {
     crs: SvgCRS,
@@ -45,11 +55,25 @@ export function createWorldMap(el: HTMLElement, base: MapData['base']) {
     attributionControl: false,
     minZoom: -10,
   });
-  L.imageOverlay(base.url, bounds, { className: 'base-layer' }).addTo(map);
+  // Зум карты z: 2^z px на единицу холста. Уровень тайлов L = z + offset,
+  // последний уровень (levels - 1) — это scale px на единицу.
+  const native = Math.log2(base.scale);
+  const offset = base.levels - 1 - native;
+  L.tileLayer('/dnd/map/tiles/{z}/{x}/{y}.webp', {
+    tileSize: base.tileSize,
+    zoomOffset: offset,
+    minNativeZoom: -offset,
+    maxNativeZoom: native,
+    minZoom: -10,
+    maxZoom: 10,
+    bounds,
+    noWrap: true,
+    className: 'base-layer',
+  }).addTo(map);
   map.fitBounds(bounds);
   const fit = map.getZoom();
   map.setMinZoom(fit);
-  map.setMaxZoom(fit + 6);
+  map.setMaxZoom(native + 2);
   return { map, bounds };
 }
 
