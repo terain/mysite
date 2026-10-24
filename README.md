@@ -24,9 +24,11 @@
 
 Карта мира DnD (`/dnd/map`):
 
-- Подложка — готовый SVG `public/dnd/map/base.svg`, его размер (viewBox) — в `src/dnd/base.json`.
-  Обновляет оба файла и делает commit + push `scripts/dnd-map-sync.sh [путь к svg]`
-  (по умолчанию `~/Документы/dnd/карты/земля.svg`). Файл больше 25 МиБ Cloudflare не примет.
+- Подложка — запечённый SVG `public/dnd/map/base.svg`, его размер (viewBox) — в `src/dnd/base.json`.
+  Полная карта собирается у Максима (`собрать.py`), затем
+  `scripts/dnd-map-bake.py земля.svg земля-запечённая.svg` выкидывает служебное Inkscape,
+  скрытые слои и лишние знаки в координатах, а `scripts/dnd-map-sync.sh [путь к svg]`
+  кладёт запечённую копию в сайт и делает commit + push. Файл больше 25 МиБ Cloudflare не примет.
 - Слои — `src/content/dnd-map/layers.json`: `kind: zones` (области) или `icons` (значки).
 - Объекты — `src/content/dnd-map/<id слоя>/<объект>.md`: `title`, `summary`, `icon`, `color`,
   `point: [x, y]` или `area: [[x, y], ...]` в единицах SVG; текст файла — карточка справа.

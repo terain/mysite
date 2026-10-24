@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Кладёт готовую карту мира в сайт как подложку /dnd/map и отправляет в гит.
+# Кладёт запечённую карту мира в сайт как подложку /dnd/map и отправляет в гит.
 # Запуск из любой папки:  scripts/dnd-map-sync.sh [путь к svg]
+# Обычно его вызывает собрать.py после scripts/dnd-map-bake.py.
 # После push в main Cloudflare сам выкладывает сайт.
 set -euo pipefail
 
-SRC="${1:-$HOME/Документы/dnd/карты/земля.svg}"
+SRC="${1:-$HOME/Документы/dnd/карты/земля-запечённая.svg}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="$REPO/public/dnd/map/base.svg"
 # Cloudflare Workers не принимает статический файл больше 25 МиБ
@@ -31,10 +32,11 @@ print(f'{w:g} {h:g}')
 PY
 )
 
+cd "$REPO"
+git pull -q --rebase --autostash
 cp "$SRC" "$DEST"
 printf '{ "width": %s, "height": %s }\n' "$W" "$H" > "$REPO/src/dnd/base.json"
 
-cd "$REPO"
 git add public/dnd/map/base.svg src/dnd/base.json
 if git diff --cached --quiet; then
   echo "Карта не изменилась."
