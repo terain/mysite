@@ -1,0 +1,4 @@
+[
+  { "id": "portals", "title": "Порталы стихий", "kind": "icons", "color": "#7a2f8a", "order": 1 },
+  { "id": "planes", "title": "Промежуточные планы", "kind": "icons", "color": "#2f6f8a", "order": 2 }
+]
