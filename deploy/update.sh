@@ -8,6 +8,7 @@ set -euo pipefail
 APP=/srv/mysite
 REPO=https://github.com/terain/mysite.git
 BRANCH=$(grep -oP '^DEPLOY_BRANCH=\K.*' /etc/mysite/env 2>/dev/null || echo main)
+cd "$APP"
 exec 9>"$APP/.update.lock"; flock -n 9 || exit 0
 
 SHA=$(git ls-remote "$REPO" "refs/heads/$BRANCH" | cut -c1-12)

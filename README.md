@@ -51,6 +51,7 @@ Hetzner, Ubuntu, 2.29.204.181. Всё для сервера лежит в `deplo
   последний коммит ветки `DEPLOY_BRANCH` (из `/etc/mysite/env`), собирает его в `/srv/mysite/releases/<sha>`,
   переключает `/srv/mysite/current` и перезапускает сайт. Хранятся 3 последние версии.
 - `import.sh` → `sudo mysite-import [файл.json]` — залить в базу бэкап (без файла — последний из pCloud).
+- `secrets.sh` → `sudo mysite-secrets` — сменить пароль админки или токен pCloud (со звёздочками, ввод дважды).
 - `Caddyfile` — HTTPS, сжатие, кэш статики; `/api/backup` снаружи закрыт.
 - `systemd/` — `mysite` (сайт), `mysite-update.timer`, `mysite-backup.timer` (03:00 UTC), `mysite-restart.path`.
 

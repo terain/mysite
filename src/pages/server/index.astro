@@ -150,6 +150,7 @@ const arrows: Arrow[] = [
       <tr><td>Обновить прямо сейчас</td><td><code>sudo systemctl start mysite-update</code></td></tr>
       <tr><td>Вернуть прошлую версию</td><td><code>ls /srv/mysite/releases</code>, затем <code>sudo ln -sfn /srv/mysite/releases/&lt;версия&gt; /srv/mysite/current && sudo systemctl restart mysite</code></td></tr>
       <tr><td>Бэкап прямо сейчас</td><td><code>sudo systemctl start mysite-backup</code></td></tr>
+      <tr><td>Сменить пароль админки или токен pCloud</td><td><code>sudo mysite-secrets</code></td></tr>
       <tr><td>Восстановить базу из pCloud</td><td><code>sudo mysite-import</code></td></tr>
     </tbody>
   </table>

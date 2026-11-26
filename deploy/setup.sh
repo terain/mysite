@@ -8,6 +8,8 @@ BRANCH="${1:-main}"
 REPO=https://github.com/terain/mysite.git
 APP=/srv/mysite
 [ "$(id -u)" = 0 ] || { echo "Нужен sudo"; exit 1; }
+# Из домашней папки tera пользователь mysite не может читать текущий каталог.
+cd /
 
 echo "== Пакеты: Node.js (22.13+ для node:sqlite), Caddy"
 apt-get update -qq
@@ -80,6 +82,7 @@ SRC=$(mktemp -d); trap 'rm -rf "$SRC"' EXIT
 git clone -q --depth 1 -b "$BRANCH" "$REPO" "$SRC"
 install -m 755 "$SRC/deploy/update.sh" /usr/local/bin/mysite-update
 install -m 755 "$SRC/deploy/import.sh" /usr/local/bin/mysite-import
+install -m 755 "$SRC/deploy/secrets.sh" /usr/local/bin/mysite-secrets
 cp "$SRC"/deploy/systemd/* /etc/systemd/system/
 cp "$SRC/deploy/Caddyfile" /etc/caddy/Caddyfile
 systemctl daemon-reload
