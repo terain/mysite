@@ -43,8 +43,19 @@ if [ ! -f /etc/mysite/env ]; then
     echo >/dev/tty
     REPLY=$value
   }
-  ask "ADMIN_PASSWORD (пароль админки карты): "; ADMIN_PASSWORD=$REPLY
-  ask "PCLOUD_TOKEN (токен pCloud): "; PCLOUD_TOKEN=$REPLY
+  # Спрашиваем дважды и сверяем: клавиатура может пропустить или задвоить нажатие.
+  ask_twice() {
+    local name=$1 first
+    while :; do
+      ask "$name: "; first=$REPLY
+      [ -z "$first" ] && { echo "  (пусто, можно вписать позже в /etc/mysite/env)" >/dev/tty; return; }
+      ask "$name ещё раз: "
+      [ "$REPLY" = "$first" ] && { echo "  совпало, символов: ${#first}" >/dev/tty; return; }
+      echo "  не совпало, попробуйте снова" >/dev/tty
+    done
+  }
+  ask_twice "ADMIN_PASSWORD (пароль админки карты)"; ADMIN_PASSWORD=$REPLY
+  ask_twice "PCLOUD_TOKEN (токен pCloud)"; PCLOUD_TOKEN=$REPLY
   umask 027
   cat > /etc/mysite/env <<ENV
 # Настройки сайта. После правки: sudo systemctl restart mysite
