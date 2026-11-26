@@ -2,9 +2,9 @@
 
 Личный сайт Максима. Общение и тексты сайта — по-русски, раздел диаспоры — по-украински.
 
-- Стек: Astro 7 + `@astrojs/node` (standalone) на своём сервере Hetzner за Caddy. Деплой и службы — `deploy/`, схема — `/server`.
+- Стек: Astro 7 + `@astrojs/node` (standalone) на своём сервере Hetzner за Caddy. Всё на сервере — в `~/mysite`, установка и службы — `deploy/`, схема — `/server`.
 - Страницы статические по умолчанию; серверные помечаются `export const prerender = false`.
-- Настройки и база — через `import { env } from '<...>/server/env'` (переменные окружения, на сервере `/etc/mysite/env`).
+- Настройки и база — через `import { env } from '<...>/server/env'` (переменные окружения, на сервере `~/mysite/env`).
 - SQLite (`env.DB`, файл `<DATA_DIR>/site.db`, обёртка с API как у D1 в `src/server/db.ts`) — рабочая база. pCloud — только хранилище файлов и бэкапов, через `src/server/pcloud.ts`.
   Прямые ссылки pCloud в HTML не вставлять: они временные и привязаны к IP. Картинки — через `/media/*`.
 - Схема: только новые файлы в `migrations/`, применяются сами при старте сайта.

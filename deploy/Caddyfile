@@ -1,5 +1,5 @@
 # Веб-сервер перед сайтом: HTTPS (сертификаты Let's Encrypt сам), сжатие, кэш статики.
-# После правки: sudo systemctl reload caddy
+# Лежит в ~/mysite/Caddyfile. После правки: sudo systemctl reload mysite-caddy
 #
 # Пока DNS strokov.me смотрит на Cloudflare, работает только проверочный адрес sslip.io.
 # При переключении DNS: заменить первую строку на

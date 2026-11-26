@@ -18,7 +18,7 @@ const boxes: Box[] = [
   { x: 20, y: 470, w: 170, h: 64, title: 'GitHub', sub: 'terain/mysite, ветка main', kind: 'ext' },
   { x: 530, y: 470, w: 170, h: 64, title: 'pCloud', sub: 'картинки и бэкапы', kind: 'ext' },
   { x: 260, y: 60, w: 410, h: 56, title: 'Caddy, порты 80 и 443', sub: 'HTTPS-сертификат, сжатие, кэш', kind: 'in' },
-  { x: 260, y: 150, w: 410, h: 56, title: 'Сайт: Node.js + Astro', sub: 'служба mysite, 127.0.0.1:4321', kind: 'in' },
+  { x: 260, y: 150, w: 410, h: 56, title: 'Сайт: Node.js + Astro', sub: '~/mysite, 127.0.0.1:4321', kind: 'in' },
   { x: 260, y: 240, w: 125, h: 64, title: 'Страницы', sub: 'HTML, тайлы карты', kind: 'in' },
   { x: 402.5, y: 240, w: 125, h: 64, title: 'База SQLite', sub: 'места, квест', kind: 'in' },
   { x: 545, y: 240, w: 125, h: 64, title: 'Кэш картинок', sub: '/media, 7 дней', kind: 'in' },
@@ -132,12 +132,14 @@ const arrows: Arrow[] = [
   <table>
     <tbody>
       <tr><td>Код сайта</td><td>GitHub, <code>terain/mysite</code></td></tr>
-      <tr><td>Текущая версия на сервере</td><td><code>/srv/mysite/current</code> (последние 3 версии в <code>/srv/mysite/releases</code>)</td></tr>
-      <tr><td>База</td><td><code>/srv/mysite/data/site.db</code></td></tr>
-      <tr><td>Пароли и токены</td><td><code>/etc/mysite/env</code></td></tr>
+      <tr><td>Всё про сайт на сервере</td><td>одна папка <code>~/mysite</code> (<code>/home/tera/mysite</code>)</td></tr>
+      <tr><td>Текущая версия</td><td><code>~/mysite/current</code> (последние 3 версии в <code>~/mysite/releases</code>)</td></tr>
+      <tr><td>База</td><td><code>~/mysite/data/site.db</code></td></tr>
+      <tr><td>Пароли и токены</td><td><code>~/mysite/env</code></td></tr>
       <tr><td>Бэкапы базы</td><td>pCloud, <code>/site/backup/db/</code>, каждый день, 30 последних</td></tr>
       <tr><td>Картинки</td><td>pCloud, <code>/site/media/</code></td></tr>
-      <tr><td>Настройки Caddy</td><td><code>/etc/caddy/Caddyfile</code></td></tr>
+      <tr><td>Caddy, Node.js</td><td><code>~/mysite/Caddyfile</code>, <code>~/mysite/bin/caddy</code>, <code>~/mysite/node</code></td></tr>
+      <tr><td>Вне папки</td><td>только ссылки на службы в <code>/etc/systemd/system</code> и правила файрвола для портов 80 и 443</td></tr>
     </tbody>
   </table>
 
@@ -147,11 +149,12 @@ const arrows: Arrow[] = [
       <tr><td>Работает ли сайт</td><td><code>systemctl status mysite</code></td></tr>
       <tr><td>Логи сайта</td><td><code>journalctl -u mysite -n 100</code></td></tr>
       <tr><td>Логи обновления</td><td><code>journalctl -u mysite-update -n 50</code></td></tr>
-      <tr><td>Обновить прямо сейчас</td><td><code>sudo systemctl start mysite-update</code></td></tr>
-      <tr><td>Вернуть прошлую версию</td><td><code>ls /srv/mysite/releases</code>, затем <code>sudo ln -sfn /srv/mysite/releases/&lt;версия&gt; /srv/mysite/current && sudo systemctl restart mysite</code></td></tr>
+      <tr><td>Обновить прямо сейчас</td><td><code>~/mysite/bin/update</code></td></tr>
+      <tr><td>Вернуть прошлую версию</td><td><code>ls ~/mysite/releases</code>, затем <code>ln -sfn ~/mysite/releases/&lt;версия&gt; ~/mysite/current && touch ~/mysite/.restart</code></td></tr>
       <tr><td>Бэкап прямо сейчас</td><td><code>sudo systemctl start mysite-backup</code></td></tr>
-      <tr><td>Сменить пароль админки или токен pCloud</td><td><code>sudo mysite-secrets</code></td></tr>
-      <tr><td>Восстановить базу из pCloud</td><td><code>sudo mysite-import</code></td></tr>
+      <tr><td>Сменить пароль админки или токен pCloud</td><td><code>~/mysite/bin/secrets</code></td></tr>
+      <tr><td>Убрать сайт с сервера целиком</td><td><code>sudo ~/mysite/bin/uninstall && rm -rf ~/mysite</code></td></tr>
+      <tr><td>Восстановить базу из pCloud</td><td><code>~/mysite/bin/import</code></td></tr>
     </tbody>
   </table>
 </Base>

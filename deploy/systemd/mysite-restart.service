@@ -1,5 +1,5 @@
 [Unit]
-Description=Перезапуск сайта после деплоя
+Description=strokov.me: перезапуск сайта после обновления
 
 [Service]
 Type=oneshot

@@ -1,7 +1,7 @@
 import type { Db } from './server/db';
 
 declare global {
-  /** Настройки и база сайта. Значения — из переменных окружения (/etc/mysite/env на сервере, .env локально). */
+  /** Настройки и база сайта. Значения — из переменных окружения (~/mysite/env на сервере, .env локально). */
   interface Env {
     DB: Db;
     PCLOUD_API_HOST: string;

@@ -1,8 +1,8 @@
 [Unit]
-Description=Перезапуск сайта после деплоя
+Description=strokov.me: перезапуск сайта после обновления
 
 [Path]
-PathChanged=/srv/mysite/.restart
+PathChanged=@APP@/.restart
 
 [Install]
 WantedBy=multi-user.target

@@ -1,5 +1,5 @@
 [Unit]
-Description=Проверять GitHub каждые 2 минуты
+Description=strokov.me: проверять GitHub каждые 2 минуты
 
 [Timer]
 OnBootSec=1min

@@ -1,7 +1,8 @@
 [Unit]
-Description=Бэкап базы сайта в pCloud
+Description=strokov.me: бэкап базы в pCloud
 
 [Service]
 Type=oneshot
-EnvironmentFile=/etc/mysite/env
-ExecStart=/bin/sh -c 'curl -fsS -X POST -H "Authorization: Bearer $BACKUP_TOKEN" http://127.0.0.1:$PORT/api/backup'
+User=@USER@
+EnvironmentFile=@APP@/env
+ExecStart=/bin/sh -c 'curl -fsS -X POST -H "Authorization: Bearer $BACKUP_TOKEN" http://127.0.0.1:4321/api/backup'

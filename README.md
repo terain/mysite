@@ -43,19 +43,23 @@ npm run dev            # база создаётся в ./data/site.db, мигр
 
 ## Сервер
 
-Hetzner, Ubuntu, 2.29.204.181. Всё для сервера лежит в `deploy/`:
+Hetzner, Ubuntu, 2.29.204.181. Всё лежит в одной папке `~/mysite` (пользователь `tera`), включая Node.js и Caddy:
 
-- `setup.sh` — первая настройка (Node.js, Caddy, пользователь `mysite`, службы, файрвол):
-  `curl -fsSL https://raw.githubusercontent.com/terain/mysite/main/deploy/setup.sh | sudo bash -s -- main`
-- `update.sh` → `/usr/local/bin/mysite-update` — автодеплой. Таймер `mysite-update` раз в 2 минуты сверяет
-  последний коммит ветки `DEPLOY_BRANCH` (из `/etc/mysite/env`), собирает его в `/srv/mysite/releases/<sha>`,
-  переключает `/srv/mysite/current` и перезапускает сайт. Хранятся 3 последние версии.
-- `import.sh` → `sudo mysite-import [файл.json]` — залить в базу бэкап (без файла — последний из pCloud).
-- `secrets.sh` → `sudo mysite-secrets` — сменить пароль админки или токен pCloud (со звёздочками, ввод дважды).
-- `Caddyfile` — HTTPS, сжатие, кэш статики; `/api/backup` снаружи закрыт.
-- `systemd/` — `mysite` (сайт), `mysite-update.timer`, `mysite-backup.timer` (03:00 UTC), `mysite-restart.path`.
+```
+~/mysite/
+  current -> releases/<sha>   работающая версия (3 последние в releases/)
+  data/site.db                база; data/cache/ — кэш картинок
+  env                         пароли и настройки (ADMIN_PASSWORD, PCLOUD_TOKEN, BACKUP_TOKEN, DEPLOY_BRANCH…)
+  Caddyfile, caddy/           настройки и сертификаты Caddy
+  node/, bin/caddy            Node.js и Caddy
+  bin/update|import|secrets|uninstall
+  systemd/                    службы; в /etc/systemd/system на них только ссылки
+```
 
-Секреты и настройки — `/etc/mysite/env`: `ADMIN_PASSWORD`, `PCLOUD_TOKEN`, `BACKUP_TOKEN`, `PCLOUD_*`, `DATA_DIR`, `DEPLOY_BRANCH`.
+- Установка: `curl -fsSL https://raw.githubusercontent.com/terain/mysite/main/deploy/setup.sh -o /tmp/setup.sh && sudo bash /tmp/setup.sh main`
+- Автодеплой: таймер `mysite-update` раз в 2 минуты запускает `bin/update`.
+- `~/mysite/bin/import` — залить бэкап из pCloud в базу; `~/mysite/bin/secrets` — сменить пароль или токен.
+- Убрать всё: `sudo ~/mysite/bin/uninstall && rm -rf ~/mysite` (вне папки остаются только ссылки на службы и правила ufw, их убирает uninstall).
 
 ## pCloud
 

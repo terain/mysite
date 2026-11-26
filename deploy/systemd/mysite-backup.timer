@@ -1,5 +1,5 @@
 [Unit]
-Description=Бэкап базы каждый день в 03:00 UTC
+Description=strokov.me: бэкап базы каждый день в 03:00 UTC
 
 [Timer]
 OnCalendar=*-*-* 03:00:00 UTC

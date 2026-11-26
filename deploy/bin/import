@@ -1,0 +1,9 @@
+#!/bin/bash
+# Залить в базу бэкап: ~/mysite/bin/import [файл.json]
+# Без файла берёт последний бэкап из pCloud. Старая база сохраняется рядом: data/site.db.before-import-*
+set -euo pipefail
+. "$(dirname "$0")/lib.sh"
+set -a; . "$APP/env"; set +a
+cd "$APP/current"
+node scripts/import-backup.mjs "$@"
+restart_site
