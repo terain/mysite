@@ -74,7 +74,7 @@ PORT=4321
 ENV
   chgrp mysite /etc/mysite/env
 else
-  sed -i "s/^DEPLOY_BRANCH=.*/DEPLOY_BRANCH=$BRANCH/" /etc/mysite/env
+  sed -i "s|^DEPLOY_BRANCH=.*|DEPLOY_BRANCH=$BRANCH|" /etc/mysite/env
 fi
 
 echo "== Первая сборка ветки $BRANCH"
