@@ -28,8 +28,23 @@ install -d -m 750 -o root -g mysite /etc/mysite
 
 if [ ! -f /etc/mysite/env ]; then
   echo "== Секреты (Enter = оставить пустым, потом можно вписать в /etc/mysite/env)"
-  read -rsp "ADMIN_PASSWORD (пароль админки карты): " ADMIN_PASSWORD </dev/tty; echo
-  read -rsp "PCLOUD_TOKEN (токен pCloud): " PCLOUD_TOKEN </dev/tty; echo
+  # Ввод со звёздочками: видно, сколько символов набрано. Backspace стирает.
+  ask() {
+    local prompt=$1 c value=''
+    printf '%s' "$prompt" >/dev/tty
+    while IFS= read -rsn1 c </dev/tty; do
+      [ -z "$c" ] && break
+      if [ "$c" = $'\x7f' ] || [ "$c" = $'\b' ]; then
+        [ -n "$value" ] && { value=${value%?}; printf '\b \b' >/dev/tty; }
+      else
+        value+=$c; printf '*' >/dev/tty
+      fi
+    done
+    echo >/dev/tty
+    REPLY=$value
+  }
+  ask "ADMIN_PASSWORD (пароль админки карты): "; ADMIN_PASSWORD=$REPLY
+  ask "PCLOUD_TOKEN (токен pCloud): "; PCLOUD_TOKEN=$REPLY
   umask 027
   cat > /etc/mysite/env <<ENV
 # Настройки сайта. После правки: sudo systemctl restart mysite
