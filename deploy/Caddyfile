@@ -1,10 +1,13 @@
 # Веб-сервер перед сайтом: HTTPS (сертификаты Let's Encrypt сам), сжатие, кэш статики.
 # Лежит в ~/mysite/Caddyfile. После правки: sudo systemctl reload mysite-caddy
 #
-# Пока DNS strokov.me смотрит на Cloudflare, работает только проверочный адрес sslip.io.
-# При переключении DNS: заменить первую строку на
-#   strokov.me, www.strokov.me, 2-29-204-181.sslip.io {
-2-29-204-181.sslip.io {
+# strokov.me и www.strokov.me — записи A в Cloudflare на 2.29.204.181 (без прокси, «DNS only»).
+# 2-29-204-181.sslip.io — запасной адрес прямо на IP сервера.
+www.strokov.me {
+	redir https://strokov.me{uri} permanent
+}
+
+strokov.me, 2-29-204-181.sslip.io {
 	encode zstd gzip
 
 	# Бэкап дёргает только таймер на самом сервере.
