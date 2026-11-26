@@ -1,0 +1,6 @@
+[Unit]
+Description=strokov.me: перезапуск сайта после обновления
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart mysite.service

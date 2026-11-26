@@ -2,12 +2,12 @@
 
 Личный сайт Максима. Общение и тексты сайта — по-русски, раздел диаспоры — по-украински.
 
-- Стек: Astro 7 + `@astrojs/cloudflare`, один Worker (`src/worker.ts`: fetch → Astro, scheduled → бэкап).
+- Стек: Astro 7 + `@astrojs/node` (standalone) на своём сервере Hetzner за Caddy. Всё на сервере — в `~/mysite`, установка и службы — `deploy/`, схема — `/server`.
 - Страницы статические по умолчанию; серверные помечаются `export const prerender = false`.
-- Bindings берутся через `import { env } from 'cloudflare:workers'` (`Astro.locals.runtime` в v6+ удалён).
-- D1 (`env.DB`) — рабочая база. pCloud — только хранилище файлов и бэкапов, через `src/server/pcloud.ts`.
+- Настройки и база — через `import { env } from '<...>/server/env'` (переменные окружения, на сервере `~/mysite/env`).
+- SQLite (`env.DB`, файл `<DATA_DIR>/site.db`, обёртка с API как у D1 в `src/server/db.ts`) — рабочая база. pCloud — только хранилище файлов и бэкапов, через `src/server/pcloud.ts`.
   Прямые ссылки pCloud в HTML не вставлять: они временные и привязаны к IP. Картинки — через `/media/*`.
-- Схема: только новые файлы в `migrations/`.
+- Схема: только новые файлы в `migrations/`, применяются сами при старте сайта.
 - Проверка перед PR: `npx astro check` и `npm run build`.
 - Разделы изолированы: главная `/` — пустая заглушка, в шапке только свой раздел, ссылок между разделами нет.
-- Ветки: `main` = прод; задачи в ветках вида `diaspora/...`, `dnd/...`, `quest/...`.
+- Ветки: `main` = прод (сервер сам забирает новые коммиты раз в 2 минуты); задачи в ветках вида `diaspora/...`, `dnd/...`, `quest/...`.

@@ -1,0 +1,30 @@
+# Веб-сервер перед сайтом: HTTPS (сертификаты Let's Encrypt сам), сжатие, кэш статики.
+# Лежит в ~/mysite/Caddyfile. После правки: sudo systemctl reload mysite-caddy
+#
+# strokov.me и www.strokov.me — записи A в Cloudflare на 2.29.204.181 (без прокси, «DNS only»).
+# 2-29-204-181.sslip.io — запасной адрес прямо на IP сервера.
+www.strokov.me {
+	redir https://strokov.me{uri} permanent
+}
+
+strokov.me, 2-29-204-181.sslip.io {
+	encode zstd gzip
+
+	# Бэкап дёргает только таймер на самом сервере.
+	@internal path /api/backup
+	respond @internal 404
+
+	# defer: заголовок ставится поверх того, что вернул сайт.
+	@astro path /_astro/*
+	header @astro {
+		Cache-Control "public, max-age=31536000, immutable"
+		defer
+	}
+	@tiles path /dnd/map/tiles/*
+	header @tiles {
+		Cache-Control "public, max-age=604800"
+		defer
+	}
+
+	reverse_proxy 127.0.0.1:4321
+}

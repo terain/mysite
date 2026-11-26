@@ -1,0 +1,8 @@
+[Unit]
+Description=strokov.me: автодеплой из GitHub
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=@USER@
+ExecStart=@APP@/bin/update

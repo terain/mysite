@@ -1,0 +1,8 @@
+[Unit]
+Description=strokov.me: перезапуск сайта после обновления
+
+[Path]
+PathChanged=@APP@/.restart
+
+[Install]
+WantedBy=multi-user.target

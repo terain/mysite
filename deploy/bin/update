@@ -1,0 +1,33 @@
+#!/bin/bash
+# Автодеплой: если в ветке DEPLOY_BRANCH новый коммит — собрать его в releases/<sha>,
+# переключить current и перезапустить сайт. Запускает таймер mysite-update раз в 2 минуты.
+#   ~/mysite/bin/update          — проверить и обновить
+#   ~/mysite/bin/update --force  — пересобрать текущий коммит
+# Откат: ln -sfn ~/mysite/releases/<старый> ~/mysite/current && touch ~/mysite/.restart
+set -euo pipefail
+. "$(dirname "$0")/lib.sh"
+cd "$APP"
+exec 9>"$APP/.update.lock"; flock -n 9 || exit 0
+BRANCH=$(get_var DEPLOY_BRANCH); BRANCH=${BRANCH:-main}
+
+SHA=$(git ls-remote "$REPO" "refs/heads/$BRANCH" | cut -c1-12)
+[ -n "$SHA" ] || { echo "ветка $BRANCH не найдена"; exit 1; }
+CUR=$(basename "$(readlink -f "$APP/current" 2>/dev/null || echo none)")
+[ "$SHA" = "$CUR" ] && [ "${1:-}" != --force ] && exit 0
+
+echo "деплой $BRANCH@$SHA (было $CUR)"
+DIR="$APP/releases/$SHA"
+mkdir -p "$APP/releases"
+rm -rf "$DIR.tmp"
+git clone -q --depth 1 -b "$BRANCH" "$REPO" "$DIR.tmp"
+cd "$DIR.tmp"
+npm ci --no-audit --no-fund --loglevel=error
+npm run build --silent
+npm prune --omit=dev --no-audit --no-fund --loglevel=error
+cd "$APP"
+rm -rf "$DIR"; mv "$DIR.tmp" "$DIR"
+ln -sfn "$DIR" "$APP/current"
+restart_site
+# Оставляем 3 последних версии.
+ls -1t "$APP/releases" | grep -v '\.tmp$' | tail -n +4 | sed "s#^#$APP/releases/#" | xargs -r rm -rf
+echo "готово: $SHA"

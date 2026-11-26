@@ -1,0 +1,15 @@
+#!/bin/bash
+# Убрать сайт с сервера целиком: sudo ~/mysite/bin/uninstall
+# Отключает службы (их ссылки в /etc/systemd/system), закрывает порты 80/443 в ufw.
+# Папку ~/mysite не трогает, её удалить вручную: rm -rf ~/mysite
+set -uo pipefail
+[ "$(id -u)" = 0 ] || { echo "Нужен sudo"; exit 1; }
+APP=$(cd "$(dirname "$0")/.." && pwd)
+for u in "$APP"/systemd/*; do systemctl disable --now "$(basename "$u")" 2>/dev/null; done
+for u in "$APP"/systemd/*; do rm -f "/etc/systemd/system/$(basename "$u")"; done
+systemctl daemon-reload
+if command -v ufw >/dev/null; then
+  ufw delete allow 80/tcp >/dev/null 2>&1; ufw delete allow 443/tcp >/dev/null 2>&1; ufw delete allow 443/udp >/dev/null 2>&1
+fi
+echo "Службы сайта отключены, вне $APP ничего не осталось."
+echo "Удалить сам сайт с данными: rm -rf $APP"
