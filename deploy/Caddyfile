@@ -1,0 +1,20 @@
+# Веб-сервер перед сайтом: HTTPS (сертификаты Let's Encrypt сам), сжатие, кэш статики.
+# После правки: sudo systemctl reload caddy
+#
+# Пока DNS strokov.me смотрит на Cloudflare, работает только проверочный адрес sslip.io.
+# При переключении DNS: заменить первую строку на
+#   strokov.me, www.strokov.me, 2-29-204-181.sslip.io {
+2-29-204-181.sslip.io {
+	encode zstd gzip
+
+	# Бэкап дёргает только таймер на самом сервере.
+	@internal path /api/backup
+	respond @internal 404
+
+	@astro path /_astro/*
+	header @astro Cache-Control "public, max-age=31536000, immutable"
+	@tiles path /dnd/map/tiles/*
+	header @tiles Cache-Control "public, max-age=604800"
+
+	reverse_proxy 127.0.0.1:4321
+}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Автодеплой сайта из GitHub
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=mysite
+Group=mysite
+Environment=HOME=/srv/mysite
+ExecStart=/usr/local/bin/mysite-update

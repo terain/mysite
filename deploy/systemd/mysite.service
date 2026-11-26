@@ -1,0 +1,23 @@
+[Unit]
+Description=strokov.me (Astro, Node)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=mysite
+Group=mysite
+WorkingDirectory=/srv/mysite/current
+EnvironmentFile=/etc/mysite/env
+Environment=NODE_ENV=production NODE_NO_WARNINGS=1
+ExecStart=/usr/bin/node /srv/mysite/current/dist/server/entry.mjs
+Restart=always
+RestartSec=3
+MemoryMax=700M
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/srv/mysite/data
+
+[Install]
+WantedBy=multi-user.target

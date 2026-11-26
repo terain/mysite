@@ -1,6 +1,6 @@
 import { deleteFile, ensureFolder, listFolder, uploadText } from './pcloud';
 
-/** Выгружает все таблицы D1 в JSON и кладёт в <PCLOUD_ROOT>/backup/db/YYYY-MM-DD.json. */
+/** Выгружает все таблицы базы в JSON и кладёт в <PCLOUD_ROOT>/backup/db/YYYY-MM-DD.json. */
 export async function backupDatabase(env: Env): Promise<string> {
   const { results: tables } = await env.DB.prepare(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name != 'd1_migrations'",

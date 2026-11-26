@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { env } from '../../server/env';
 import { parsePlace } from '../../diaspora/place';
 
 export const prerender = false;
@@ -12,7 +12,7 @@ async function hashIp(ip: string): Promise<string> {
 }
 
 // Предложение нового места с карты диаспоры. Попадает в suggestions и ждёт модерации в /diaspora/admin.
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, clientAddress }) => {
   const form = await request.formData();
   // Поле-ловушка: человек его не видит, боты заполняют.
   if (String(form.get('company') ?? '')) return Response.json({ ok: true });
@@ -20,7 +20,9 @@ export const POST: APIRoute = async ({ request }) => {
   const parsed = parsePlace(form);
   if ('error' in parsed) return Response.json({ error: parsed.error }, { status: 400 });
 
-  const ip = await hashIp(request.headers.get('CF-Connecting-IP') ?? 'unknown');
+  // Caddy кладёт настоящий адрес в X-Forwarded-For; CF-Connecting-IP есть, если включён прокси Cloudflare.
+  const forwarded = request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim();
+  const ip = await hashIp(request.headers.get('CF-Connecting-IP') ?? forwarded ?? clientAddress ?? 'unknown');
   const recent = await env.DB.prepare(
     `SELECT count(*) AS n FROM suggestions
      WHERE json_extract(payload, '$.ip') = ? AND created_at > datetime('now', '-1 day')`,

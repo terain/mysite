@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { env } from '../../server/env';
 import { fetchFile } from '../../server/pcloud';
 
 export const prerender = false;
@@ -16,19 +18,23 @@ const TYPES: Record<string, string> = {
   pdf: 'application/pdf',
 };
 
-// /media/dnd/map.jpg → <PCLOUD_ROOT>/media/dnd/map.jpg на pCloud, с кэшем Cloudflare на неделю.
-export const GET: APIRoute = async ({ params, request, locals }) => {
+// /media/dnd/map.jpg → <PCLOUD_ROOT>/media/dnd/map.jpg на pCloud.
+// Скачанный файл неделю лежит на диске сервера (<DATA_DIR>/cache/media/), pCloud дёргаем только при промахе.
+export const GET: APIRoute = async ({ params }) => {
   const path = params.path ?? '';
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
-  if (!path || path.split('/').some((p) => p === '..' || p === '') || !(ext in TYPES)) {
+  if (!path || path.split('/').some((p) => p === '..' || p === '' || p === '.') || !(ext in TYPES)) {
     return new Response('Not found', { status: 404 });
   }
+  const headers = { 'Content-Type': TYPES[ext], 'Cache-Control': `public, max-age=${WEEK}` };
+  const file = join(env.DATA_DIR, 'cache', 'media', path);
 
-  // В типах DOM нет caches.default, в Workers он есть.
-  const cache = (caches as unknown as { default: Cache }).default;
-  const cacheKey = new Request(new URL(request.url).toString(), { method: 'GET' });
-  const cached = await cache.match(cacheKey);
-  if (cached) return cached;
+  try {
+    const s = await stat(file);
+    if (Date.now() - s.mtimeMs < WEEK * 1000) return new Response(new Uint8Array(await readFile(file)), { headers });
+  } catch {
+    // нет в кэше
+  }
 
   let upstream: Response;
   try {
@@ -38,12 +44,13 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
   }
   if (!upstream.ok) return new Response('Upstream error', { status: 502 });
 
-  const response = new Response(upstream.body, {
-    headers: {
-      'Content-Type': TYPES[ext],
-      'Cache-Control': `public, max-age=${WEEK}`,
-    },
-  });
-  locals.cfContext.waitUntil(cache.put(cacheKey, response.clone()));
-  return response;
+  const body = new Uint8Array(await upstream.arrayBuffer());
+  try {
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(`${file}.tmp`, body);
+    await rename(`${file}.tmp`, file);
+  } catch (e) {
+    console.error('media cache:', e);
+  }
+  return new Response(body, { headers });
 };

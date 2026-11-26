@@ -1,5 +1,5 @@
 // Минимальный клиент HTTP API pCloud: https://docs.pcloud.com/
-// Токен — OAuth access_token, хранится как секрет PCLOUD_TOKEN.
+// Токен — OAuth access_token, переменная окружения PCLOUD_TOKEN.
 
 type PcloudEnv = Pick<Env, 'PCLOUD_API_HOST' | 'PCLOUD_TOKEN'>;
 
@@ -26,7 +26,7 @@ async function call<T extends PcloudResponse>(
 
 /**
  * Скачивает файл по пути. Ссылка из getfilelink временная и привязана к IP,
- * поэтому запрашиваем её и сразу качаем из того же Worker.
+ * поэтому запрашиваем её и сразу качаем с того же сервера.
  */
 export async function fetchFile(env: PcloudEnv, path: string): Promise<Response> {
   const link = await call<PcloudResponse & { hosts: string[]; path: string }>(env, 'getfilelink', { path });

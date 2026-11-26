@@ -1,0 +1,8 @@
+[Unit]
+Description=Перезапуск сайта после деплоя
+
+[Path]
+PathChanged=/srv/mysite/.restart
+
+[Install]
+WantedBy=multi-user.target

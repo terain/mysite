@@ -1,0 +1,6 @@
+[Unit]
+Description=Перезапуск сайта после деплоя
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart mysite.service
