@@ -9,8 +9,6 @@
 | Путь | Что там | Где править |
 | --- | --- | --- |
 | `/` | Пустая заглушка (разделы только по прямой ссылке) | `src/pages/index.astro` |
-| `/quest` | Квест | Markdown в `src/content/quest/`, ответы в базе |
-| `/misc` | Другое | Markdown в `src/content/misc/` |
 | `/media/*` | Файлы из pCloud `<PCLOUD_ROOT>/media/` с кэшем на диске | `src/pages/media/[...path].ts` |
 | `/api/backup` | Бэкап базы в pCloud (только с сервера, токен `BACKUP_TOKEN`) | `src/pages/api/backup.ts` |
 | `/server` | Схема работы сайта и сервера | `src/pages/server/index.astro` |
