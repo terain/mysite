@@ -95,7 +95,6 @@ if [ ! -f "$APP/env" ]; then
   step "Пароли (Enter = оставить пустым, потом: ~/mysite/bin/secrets)"
   as_user bash -c "
     . '$APP/bin/lib.sh'
-    ask_twice 'ADMIN_PASSWORD (пароль админки карты)'; set_var ADMIN_PASSWORD \"\$REPLY\"
     ask_twice 'PCLOUD_TOKEN (токен pCloud)'; set_var PCLOUD_TOKEN \"\$REPLY\"
     set_var BACKUP_TOKEN \$(openssl rand -hex 24)
     set_var PCLOUD_API_HOST eapi.pcloud.com

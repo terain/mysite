@@ -18,7 +18,7 @@ const TYPES: Record<string, string> = {
   pdf: 'application/pdf',
 };
 
-// /media/dnd/map.jpg → <PCLOUD_ROOT>/media/dnd/map.jpg на pCloud.
+// /media/photos/cat.jpg → <PCLOUD_ROOT>/media/photos/cat.jpg на pCloud.
 // Скачанный файл неделю лежит на диске сервера (<DATA_DIR>/cache/media/), pCloud дёргаем только при промахе.
 export const GET: APIRoute = async ({ params }) => {
   const path = params.path ?? '';

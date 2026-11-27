@@ -20,11 +20,6 @@ strokov.me, 2-29-204-181.sslip.io {
 		Cache-Control "public, max-age=31536000, immutable"
 		defer
 	}
-	@tiles path /dnd/map/tiles/*
-	header @tiles {
-		Cache-Control "public, max-age=604800"
-		defer
-	}
 
 	reverse_proxy 127.0.0.1:4321
 }

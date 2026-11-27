@@ -8,7 +8,6 @@ declare global {
     PCLOUD_ROOT: string;
     BACKUP_KEEP_DAYS: string;
     PCLOUD_TOKEN: string;
-    ADMIN_PASSWORD: string;
     /** Токен для POST /api/backup (его дёргает таймер на сервере). Пусто = эндпоинт выключен. */
     BACKUP_TOKEN: string;
     /** Папка с базой и кэшем. */

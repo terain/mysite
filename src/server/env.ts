@@ -16,7 +16,6 @@ export const env: Env = {
   PCLOUD_ROOT: e.PCLOUD_ROOT || '/site',
   BACKUP_KEEP_DAYS: e.BACKUP_KEEP_DAYS || '30',
   PCLOUD_TOKEN: e.PCLOUD_TOKEN || '',
-  ADMIN_PASSWORD: e.ADMIN_PASSWORD || '',
   BACKUP_TOKEN: e.BACKUP_TOKEN || '',
   DATA_DIR,
 };
